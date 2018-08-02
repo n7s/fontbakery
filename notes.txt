@@ -1,0 +1,77 @@
+Installing Fontbakery on a bionic CT (lxc) for testing/devel
+=============================================================
+Now that fontbakery is stabilizing here are my notes.
+
+
+apt install git vim tree htop 
+git clone https://github.com/googlefonts/fontbakery.git
+apt install python3-pip
+apt install python-libxml2
+apt install libxml2-dev libxslt1-dev
+apt install python-fontforge
+cd fontbakery 
+pip3 install -r requirements.txt 
+
+apt install bash-completion 
+vim /etc/bash.bashrc (uncomment completion block)
+cp snippets/bash_completion /etc/bash_completion.d/fontbakery
+apt install software-properties-common
+pip3 install --upgrade ufolint
+apt install python3-future
+
+
+running checks
+===============
+
+list all available checks in a subcommand (in this case the googlefont-specific checks):
+fontbakery check-googlefonts --list-checks
+
+run all checks in a subcommand on a set of ttf binary files:
+fontbakery check-googlefonts --verbose results/*.ttf --no-colors &> ttf-report.txt
+
+run a particular check from a subcommand (check for DSIG presence):
+fontbakery check-googlefonts --verbose --no-colors --checkid com.google.fonts/check/045 results/*.ttf &> google-045-report.txt
+
+only run a particular check from another subcommand (with exclude by id):
+fontbakery check-opentype --verbose --no-colors --exclude-checkid com.google.fonts/check/007 results/*.ttf &> opentype-without-google-007-report.txt
+
+run all checks in another subcommand on a set of ufo sources:
+fontbakery check-ufo-sources --verbose --no-colors source/*.ufo &> ufo-report.txt
+
+
+adding our own checks
+==================
+
+writing checks:
+https://github.com/googlefonts/fontbakery/blob/master/docs/writing-specifications.md
+
+adding two new files which will create a subcommand (with completion) where we can add our specific checks and import others checks we want:
+    Lib/fontbakery/commands/check_silfonts.py
+    Lib/fontbakery/specifications/silfonts.py
+
+install with local modifications:
+python3 setup.py install 
+
+list our checks:
+fontbakery check-silfonts -L   
+
+run our tests:
+fontbakery check-silfonts --verbose --no-colors results/*.ttf 
+
+Now populate the tests from the UFOchecks spec:
+https://github.com/silnrsi/ufochecks
+That's it. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
