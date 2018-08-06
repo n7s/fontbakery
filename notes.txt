@@ -1,10 +1,12 @@
 Installing Fontbakery on a bionic CT (lxc) for testing/devel
 =============================================================
-Now that fontbakery is stabilizing here are my notes.
+Now that fontbakery is stabilizing here are my notes:
 
+lxc launch images:ubuntu/bionic fontbakery-bionic
+lxc exec fontbakery-bionic bash
 
 apt install git vim tree htop 
-git clone https://github.com/googlefonts/fontbakery.git
+git clone https://github.com/n7s/fontbakery.git
 apt install python3-pip
 apt install python-libxml2
 apt install libxml2-dev libxslt1-dev
@@ -60,7 +62,9 @@ fontbakery check-silfonts --verbose --no-colors results/*.ttf
 
 Now populate the tests from the UFOchecks spec:
 https://github.com/silnrsi/ufochecks
-That's it. 
+
+Smith integration is underway to make fontbakery another test target. 
+
 
 
 
