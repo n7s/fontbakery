@@ -929,7 +929,7 @@ class Spec(object):
 
       if not force:
         raise NamespaceError('Name "{}" is already registered in "{}" '
-                      '(value: {}). Reqested registering in "{}" (value: {}).' \
+                      '(value: {}). Requested registering in "{}" (value: {}).' \
                       .format(name, registered_type, registered_value
                                                                 , type, value))
       else:
