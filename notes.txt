@@ -1,6 +1,22 @@
+Now that fontbakery is stabilizing here are my notes. 
+Last update: Sept 12th 2018.
+
+installing the current release inside a xenial smith VM
+========================================================
+
+sudo add-apt-repository ppa:jonathonf/python-3.6
+sudo apt-get update -y
+apt-get install python3.6 -y 
+cd /usr/local/builds
+git clone https://github.com/n7s/fontbakery.git
+sudo apt install python3-pip -y
+python3.6 -m pip install --upgrade pip
+cd fontbakery 
+python3.6 -m pip install fontbakery  
+
+
 Installing Fontbakery on a bionic CT (lxc) for testing/devel
 =============================================================
-Now that fontbakery is stabilizing here are my notes:
 
 lxc launch images:ubuntu/bionic fontbakery-bionic
 lxc exec fontbakery-bionic bash
@@ -12,7 +28,7 @@ apt install python-libxml2
 apt install libxml2-dev libxslt1-dev
 apt install python-fontforge
 cd fontbakery 
-pip3 install -r requirements.txt 
+pip3 install -e . 
 
 apt install bash-completion 
 vim /etc/bash.bashrc (uncomment completion block)
@@ -22,27 +38,43 @@ pip3 install --upgrade ufolint
 apt install python3-future
 
 
-running checks
+Installing on macOS
+==================
+
+cd ~/Documents/
+git clone https://github.com/n7s/fontbakery.git
+cd fontbakery
+virtualenv venv --python=python3
+source venv/bin/activate
+pip install -e .
+
+
+Running checks
 ===============
+
+(from the results/ folder)
 
 list all available checks in a subcommand (in this case the googlefont-specific checks):
 fontbakery check-googlefonts --list-checks
 
-run all checks in a subcommand on a set of ttf binary files:
-fontbakery check-googlefonts --verbose results/*.ttf --no-colors &> ttf-report.txt
+run all checks in a subcommand on a set of ttf binary files (plain text output):
+fontbakery check-googlefonts --verbose *.ttf --no-colors &> fontbakery-ttf-report.txt
 
-run a particular check from a subcommand (check for DSIG presence):
-fontbakery check-googlefonts --verbose --no-colors --checkid com.google.fonts/check/045 results/*.ttf &> google-045-report.txt
+run all checks in a subcommand on a set of ttf binary files (GitHub-flavoured markdown):
+fontbakery check-googlefonts --verbose *.ttf --ghmarkdown fontbakery-ttf-report.md 
 
-only run a particular check from another subcommand (with exclude by id):
-fontbakery check-opentype --verbose --no-colors --exclude-checkid com.google.fonts/check/007 results/*.ttf &> opentype-without-google-007-report.txt
+run a particular check from a subcommand (e.g. check for DSIG presence):
+fontbakery check-googlefonts --verbose --no-colors --checkid com.google.fonts/check/045 *.ttf &> fontbakery-report-google-045.txt
+
+only run a particular check from another subcommand (with exclusion by id):
+fontbakery check-opentype --verbose --no-colors --exclude-checkid com.google.fonts/check/007 *.ttf &> fontbakery-report-without-google-007.txt
 
 run all checks in another subcommand on a set of ufo sources:
-fontbakery check-ufo-sources --verbose --no-colors source/*.ufo &> ufo-report.txt
+fontbakery check-ufo-sources --verbose ../source/*.ufo --ghmarkdown fontbakery-ufo-report.md
 
 
-adding our own checks
-==================
+Adding our own checks
+======================
 
 writing checks:
 https://github.com/googlefonts/fontbakery/blob/master/docs/writing-specifications.md
@@ -51,31 +83,14 @@ adding two new files which will create a subcommand (with completion) where we c
     Lib/fontbakery/commands/check_silfonts.py
     Lib/fontbakery/specifications/silfonts.py
 
-install with local modifications:
-python3 setup.py install 
-
 list our checks:
 fontbakery check-silfonts -L   
 
-run our tests:
-fontbakery check-silfonts --verbose --no-colors results/*.ttf 
+run our tests: (in the results folder for example)
+fontbakery check-silfonts --verbose *.ttf --ghmarkdown fontbakery-ttf-report.md
 
-Now populate the tests from the UFOchecks spec:
-https://github.com/silnrsi/ufochecks
+The next step is discussing/deciding which tests we want to include or exclude and to start adding new ones based on the specs described in UFOchecks: https://github.com/silnrsi/ufochecks
 
-Smith integration is underway to make fontbakery another test target. 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Smith integration is underway to make fontbakery another test target and for the resulting .md file to become available easily.  
 
 
