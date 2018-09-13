@@ -72,11 +72,9 @@ def test_check_043():
     status, message = list(check(ttFont))[-1]
     assert status == FAIL
 
-
-def test_check_044():
+def test_parse_version_string():
   """ Checking font version fields. """
-  from fontbakery.specifications.head import (
-    com_google_fonts_check_044 as check, parse_version_string)
+  from fontbakery.specifications.head import parse_version_string
 
   version_tests_good = {"Version 01.234": ("1", "234"),
     "1.234": ("1", "234"),
@@ -88,14 +86,19 @@ def test_check_044():
     "3.000;NeWT;Nunito-Regular": ("3", "000"),
     "Something Regular Italic Version 1.234": ("1", "234")}
 
+  version_tests_bad = ["Version 0x.234", "x", "212122;asdf 01.234"]
+
   for string, version in version_tests_good.items():
     assert parse_version_string(string) == version
-
-  version_tests_bad = ["Version 0x.234", "x", "212122;asdf 01.234"]
 
   for string in version_tests_bad:
     with pytest.raises(ValueError):
       parse_version_string(string)
+
+
+def test_check_044():
+  """ Checking font version fields. """
+  from fontbakery.specifications.head import com_google_fonts_check_044 as check
 
   test_font_path = os.path.join("data", "test", "nunito", "Nunito-Regular.ttf")
 
@@ -103,22 +106,33 @@ def test_check_044():
   status, _ = list(check(test_font))[-1]
   assert status == PASS
 
-  test_font["head"].fontRevision = 3.1
+  # 1.00099 is only a mis-interpretation of a valid float value (1.001)
+  # See more detailed discussion at:
+  # https://github.com/googlefonts/fontbakery/issues/2006
+  test_font = TTFont(test_font_path)
+  test_font["head"].fontRevision = 1.00099
+  test_font["name"].setName("Version 1.001", 5, 1, 0, 0x0)
+  test_font["name"].setName("Version 1.001", 5, 3, 1, 0x409)
   status, message = list(check(test_font))[-1]
-  assert status == FAIL
-  assert message.code == "mismatch"
+  assert status == PASS
 
   test_font = TTFont(test_font_path)
+  test_font["head"].fontRevision = 3.1
+  test_font["name"].setName("Version 3.000", 5, 1, 0, 0x0)
+  test_font["name"].setName("Version 3.000", 5, 3, 1, 0x409)
+  status, message = list(check(test_font))[-1]
+  assert status == FAIL and message.code == "mismatch"
+
+  test_font = TTFont(test_font_path)
+  test_font["head"].fontRevision = 3.0
   test_font["name"].setName("Version 1.000", 5, 3, 1, 0x409)
   status, message = list(check(test_font))[-1]
-  assert status == FAIL
-  assert message.code == "mismatch"
+  assert status == FAIL and message.code == "mismatch"
 
   test_font = TTFont(test_font_path)
   test_font["name"].setName("Version x.000", 5, 3, 1, 0x409)
   status, message = list(check(test_font))[-1]
-  assert status == FAIL
-  assert message.code == "parse"
+  assert status == FAIL and message.code == "parse"
 
   test_font = TTFont(test_font_path)
   v1 = test_font["name"].getName(5, 3, 1)
@@ -126,5 +140,4 @@ def test_check_044():
   test_font["name"].names.remove(v1)
   test_font["name"].names.remove(v2)
   status, message = list(check(test_font))[-1]
-  assert status == FAIL
-  assert message.code == "missing"
+  assert status == FAIL and message.code == "missing"

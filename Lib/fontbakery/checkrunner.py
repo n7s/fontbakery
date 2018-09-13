@@ -16,12 +16,13 @@ from collections import OrderedDict, Counter
 from functools import partial
 from itertools import chain
 import importlib
-import sys
 import traceback
 import json
 import logging
+from typing import Dict, Any
 
-from fontbakery.callable import ( FontBakeryCheck
+from fontbakery.callable import ( FontbakeryCallable
+                                , FontBakeryCheck
                                 , FontBakeryCondition
                                 , FontBakeryExpectedValue
                                 )
@@ -164,40 +165,40 @@ class ProtocolViolationError(FontBakeryRunnerError):
 
 
 class FailedCheckError(FontBakeryRunnerError):
-  def __init__(self, error, traceback, *args):
+  def __init__(self, error, *args):
     message = 'Failed with {}: {}'.format(type(error).__name__, error)
     self.error = error
-    self.traceback = traceback
+    self.traceback = "".join(traceback.format_tb(error.__traceback__))
     super(FailedCheckError, self).__init__(message, *args)
 
 class FailedConditionError(FontBakeryRunnerError):
   """ This is a serious problem with the check suite spec and it must
   be solved.
   """
-  def __init__(self, condition, error, traceback, *args):
+  def __init__(self, condition, error, *args):
     message = 'The condition {} had an error: {}: {}'.format(condition, type(error).__name__, error)
     self.condition = condition
     self.error = error
-    self.traceback = traceback
+    self.traceback = "".join(traceback.format_tb(error.__traceback__))
     super(FailedConditionError, self).__init__(message, *args)
 
 class MissingConditionError(FontBakeryRunnerError):
   """ This is a serious problem with the check suite spec and it must
   be solved, most probably a typo.
   """
-  def __init__(self, condition_name, error, traceback, *args):
+  def __init__(self, condition_name, error, *args):
     message = 'The condition named {} is missing: {}: {}'.format(
                               condition_name, type(error).__name__, error)
     self.error = error
-    self.traceback = traceback
+    self.traceback = "".join(traceback.format_tb(error.__traceback__))
     super(MissingConditionError, self).__init__(message, *args)
 
 class FailedDependenciesError(FontBakeryRunnerError):
-  def __init__(self, check, error, traceback, *args):
+  def __init__(self, check, error, *args):
     message = 'The check {} had an error: {}: {}'.format(check, type(error).__name__, error)
     self.check = check
     self.error = error
-    self.traceback = traceback
+    self.traceback = "".join(traceback.format_tb(error.__traceback__))
     super(FailedDependenciesError, self).__init__(message, *args)
 
 class SetupError(FontBakeryRunnerError):
@@ -214,16 +215,6 @@ class NamespaceError(FontBakeryRunnerError):
 
 class ValueValidationError(FontBakeryRunnerError):
   pass
-
-def get_traceback():
-  """
-  Returns a string with a traceback as the python interpreter would
-  render it. Run this inside of the except block.
-  """
-  ex_type, ex, tb = sys.exc_info()
-  result = traceback.format_tb(tb)[0]
-  del tb
-  return result
 
 # TODO: this should be part of FontBakeryCheck and check.conditions
 # should be a tuple (negated, name)
@@ -329,27 +320,8 @@ class CheckRunner(object):
 
     return result
 
-  def _exec_check_generator(self, gen):
-    """ Execute a generator returned by a check callable.
-       Yield each sub-result or, in case of an error, (FAIL, exception)
-    """
-    try:
-       for sub_result in gen:
-        # Collect as much as possible
-        # list(gen) would in case only produce one
-        # error entry. This loop however keeps
-        # all sub_results upon the point of error
-        # or ends the generator.
-        yield sub_result
-    except Exception as e:
-      tb = get_traceback()
-      error = FailedCheckError(e, tb)
-      yield (ERROR, error)
-
-  def _exec_check(self, check, args):
+  def _exec_check(self, check: FontbakeryCallable, args: Dict[str, Any]):
     """ Yields check sub results.
-
-    `check` must be a callable
 
     Each check result is a tuple of: (<Status>, mixed message)
     `status`: must be an instance of Status.
@@ -367,23 +339,22 @@ class CheckRunner(object):
         knowledge from the check definition.
     """
     try:
-      result = check(**args)
-    except Exception as e:
-      tb = get_traceback()
-      error = FailedCheckError(e, tb)
-      result = (FAIL, error)
+      # A check can be either a normal function that returns one Status or a
+      # generator that yields one or more. The latter will return a generator
+      # object that we can detect with types.GeneratorType.
+      result = check(**args)  # Might raise.
 
-    # We allow the `check` callable to "yield" multiple
-    # times, instead of returning just once. That's
-    # a common thing for unit checks (checking multiple conditions
-    # in one method) and a nice feature via yield. It will also
-    # help us to be better compatible with our old style checks
-    # or with pyunittest-like tests.
-    if isinstance(result, types.GeneratorType):
-      for sub_result in self._exec_check_generator(result):
-        yield self._check_result(sub_result)
-    else:
-      yield self._check_result(result)
+      if isinstance(result, types.GeneratorType):
+        # Iterate over sub-results one-by-one, list(result) would abort on
+        # encountering the first exception.
+        for sub_result in result:  # Might raise.
+          yield self._check_result(sub_result)
+        return  # Do not fall through to rest of method.
+    except Exception as e:
+      error = FailedCheckError(e)
+      result = (ERROR, error)
+
+    yield self._check_result(result)
 
   def _evaluate_condition(self, name, iterargs, path=None):
     if path is None:
@@ -397,23 +368,20 @@ class CheckRunner(object):
     try:
       condition = self._spec.conditions[name]
     except KeyError as err:
-      tb = get_traceback()
-      error = MissingConditionError(name, err, tb)
+      error = MissingConditionError(name, err)
       return error, None
 
     try:
       args = self._get_args(condition, iterargs, path)
     except Exception as err:
-      tb = get_traceback()
-      error = FailedConditionError(condition, err, tb)
+      error = FailedConditionError(condition, err)
       return error, None
 
     path.pop()
     try:
       return None, condition(**args)
     except Exception as err:
-      tb = get_traceback()
-      error = FailedConditionError(condition, err, tb)
+      error = FailedConditionError(condition, err)
       return error, None
 
   def _filter_condition_used_iterargs(self, name, iterargs):
@@ -574,8 +542,7 @@ class CheckRunner(object):
     try:
       return None, self._get_args(check, iterargs)
     except Exception as error:
-      tb = get_traceback()
-      status = (ERROR, FailedDependenciesError(check, error, tb))
+      status = (ERROR, FailedDependenciesError(check, error))
       return (status, None)
 
   def _run_check(self, check, iterargs):

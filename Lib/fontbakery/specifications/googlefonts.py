@@ -102,7 +102,6 @@ expected_check_ids = [
       , 'com.google.fonts/check/077' # Check all glyphs have codepoints assigned.
       #, 'com.google.fonts/check/078' # Check that glyph names do not exceed max length.
       , 'com.google.fonts/check/079' # Monospace font has hhea.advanceWidthMax equal to each glyph's advanceWidth?
-      , 'com.google.fonts/check/080' # METADATA.pb: Ensure designer simple short name.
       , 'com.google.fonts/check/081' # METADATA.pb: Fontfamily is listed on Google Fonts API?
       , 'com.google.fonts/check/083' # METADATA.pb: check if fonts field only has unique "full_name" values.
       , 'com.google.fonts/check/084' # METADATA.pb: check if fonts field only contains unique style:weight pairs.
@@ -167,6 +166,7 @@ expected_check_ids = [
       , 'com.google.fonts/check/174' # Check a static ttf can be generated from a variable font.
       , 'com.google.fonts/check/180' # Does the number of glyphs in the loca table match the maxp table?
       , 'com.google.fonts/check/ttx-roundtrip' # Checking with fontTools.ttx
+      , 'com.google.fonts/check/has_ttfautohint_params' # Font has ttfautohint params
 ]
 
 specification = spec_factory(default_section=Section("Google Fonts"))
@@ -547,7 +547,7 @@ def registered_vendor_ids():
   registered_vendor_ids = {}
   CACHED = resource_filename('fontbakery',
                              'data/fontbakery-microsoft-vendorlist.cache')
-  content = open(CACHED).read()
+  content = open(CACHED, encoding='utf-8').read()
   soup = BeautifulSoup(content, 'html.parser')
 
   IDs = [chr(c + ord('a')) for c in range(ord('z') - ord('a') + 1)]
@@ -877,67 +877,30 @@ def com_google_fonts_check_032(ttFont):
 
 @condition
 def ttfautohint_stats(font):
-  import re
-  import subprocess
-  import tempfile
-  try:
-    hinted_size = os.stat(font).st_size
+  from ttfautohint import ttfautohint, libttfautohint
+  from io import BytesIO
+  from fontTools.ttLib import TTFont
 
-    dehinted = tempfile.NamedTemporaryFile(suffix=".ttf", delete=False)
-    subprocess.call(["ttfautohint",
-                     "--dehint",
-                     font,
-                     dehinted.name])
-    dehinted_size = os.stat(dehinted.name).st_size
-    os.unlink(dehinted.name)
-  except OSError:
-    return {"missing": True}
-
-  ttfa_cmd = ["ttfautohint",
-              "-V"]  # print version info
-  ttfa_output = subprocess.check_output(ttfa_cmd,
-                                        stderr=subprocess.STDOUT)
-  installed_ttfa = re.search(r'ttfautohint ([^-\n]*)(-.*)?\n',
-                             ttfa_output.decode('utf-8')).group(1)
-
+  original_buffer = BytesIO()
+  TTFont(font).save(original_buffer)
+  dehinted_buffer = ttfautohint(in_buffer=original_buffer.getvalue(),
+                                dehint=True)
   return {
-    "dehinted_size": dehinted_size,
-    "hinted_size": hinted_size,
-    "version": installed_ttfa
+    "dehinted_size": len(dehinted_buffer),
+    "hinted_size": os.stat(font).st_size,
+    "version": libttfautohint.version_string
   }
-
-TTFAUTOHINT_MISSING_MSG = (
-  "ttfautohint is not available!"
-  " You really MUST check the fonts with this tool."
-  " To install it, see https://github.com"
-  "/googlefonts/gf-docs/blob/master"
-  "/ProjectChecklist.md#ttfautohint")
 
 @check(
   id = 'com.google.fonts/check/054',
-  conditions = ['ttfautohint_stats']
+  conditions = ['ttfautohint_stats',
+                'is_ttf']
 )
 def com_google_fonts_check_054(font, ttfautohint_stats):
   """Show hinting filesize impact.
 
      Current implementation simply logs useful info
      but there's no fail scenario for this checker."""
-
-  if "missing" in ttfautohint_stats:
-    yield WARN, Message("ttfa-missing",
-                        TTFAUTOHINT_MISSING_MSG)
-    return
-
-  if ttfautohint_stats["dehinted_size"] == 0:
-    yield WARN, Message("ttfa-bug",
-                        ("ttfautohint --dehint reports that"
-                         " \"This font has already been processed"
-                         " with ttfautohint\"."
-                         " This is a bug in an old version of ttfautohint."
-                         " You'll need to upgrade it."
-                         " See https://github.com/googlefonts/fontbakery/"
-                         "issues/1043#issuecomment-249035069"))
-    return
 
   hinted = ttfautohint_stats["hinted_size"]
   dehinted = ttfautohint_stats["dehinted_size"]
@@ -999,8 +962,39 @@ def com_google_fonts_check_055(ttFont):
 
 
 @check(
+  id = 'com.google.fonts/check/has_ttfautohint_params',
+)
+def com_google_fonts_check_has_ttfautohint_params(ttFont):
+  """ Font has ttfautohint params? """
+  from fontbakery.utils import get_name_entry_strings
+  from fontbakery.constants import NAMEID_VERSION_STRING
+
+  def ttfautohint_version(value):
+    # example string:
+    #'Version 1.000; ttfautohint (v0.93) -l 8 -r 50 -G 200 -x 14 -w "G"
+    import re
+    results = re.search(r'ttfautohint \(v(.*)\) ([^;]*)', value)
+    if results:
+      return results.group(1), results.group(2)
+
+  version_strings = get_name_entry_strings(ttFont, NAMEID_VERSION_STRING)
+  failed = True
+  for vstring in version_strings:
+    values = ttfautohint_version(vstring)
+    if values:
+      ttfa_version, params = values
+      if params:
+        yield PASS, f"Font has ttfautohint params ({params})"
+        failed = False
+
+  if failed:
+    yield FAIL, "Font is lacking ttfautohint params on its version strings on the name table."
+
+
+@check(
   id = 'com.google.fonts/check/056',
-  conditions = ['ttfautohint_stats']
+  conditions = ['ttfautohint_stats',
+                'is_ttf']
 )
 def com_google_fonts_check_056(ttFont, ttfautohint_stats):
   """Font has old ttfautohint applied?
@@ -1008,10 +1002,6 @@ def com_google_fonts_check_056(ttFont, ttfautohint_stats):
      1. find which version was used, by inspecting name table entries
 
      2. find which version of ttfautohint is installed
-        and warn if not available
-
-     3. rehint the font with the latest version of ttfautohint
-        using the same options
   """
   from fontbakery.utils import get_name_entry_strings
   from fontbakery.constants import NAMEID_VERSION_STRING
@@ -1041,11 +1031,6 @@ def com_google_fonts_check_056(ttFont, ttfautohint_stats):
                  " in the font version entries of the 'name' table."
                  " Such font version strings are currently:"
                  " {}").format(version_strings)
-  elif "missing" in ttfautohint_stats:
-    # Even though we skip here, we still have a chance of performing
-    # early portions of the check in the 2 error/info scenarios above
-    # regardless of the avaiability of ttfautohint.
-    yield SKIP, TTFAUTOHINT_MISSING_MSG
   else:
     installed_ttfa = ttfautohint_stats["version"]
     try:
@@ -1056,8 +1041,8 @@ def com_google_fonts_check_056(ttFont, ttfautohint_stats):
                      " with the newer version!").format(ttfa_version,
                                                         installed_ttfa)
       else:
-        yield PASS, ("ttfautohint available in the system is older"
-                     " than the one used in the font.")
+        yield PASS, (f"ttfautohint available in the system ({installed_ttfa}) is older"
+                     f" than the one used in the font ({ttfa_version}).")
     except ValueError:
       yield FAIL, Message("parse-error",
                           ("Failed to parse ttfautohint version values:"
@@ -1093,11 +1078,9 @@ def com_google_fonts_check_061(ttFont):
 
 
 @check(
-  id = 'com.google.fonts/check/062'
-)
-def com_google_fonts_check_062(ttFont):
-  """Is 'gasp' table set to optimize rendering?
-
+  id = 'com.google.fonts/check/062',
+  conditions = ['is_ttf'],
+  rationale = """
   Traditionally version 0 'gasp' tables were set
   so that font sizes below 8 ppem had no grid
   fitting but did have antialiasing. From 9-16
@@ -1111,6 +1094,9 @@ def com_google_fonts_check_062(ttFont):
   scenario it makes sense to simply toggle all
   4 flags ON for all font sizes.
   """
+)
+def com_google_fonts_check_062(ttFont):
+  """Is 'gasp' table set to optimize rendering?"""
 
   if "gasp" not in ttFont.keys():
     yield FAIL, ("Font is missing the 'gasp' table."
@@ -1121,20 +1107,41 @@ def com_google_fonts_check_062(ttFont):
     else:
       failed = False
       if 0xFFFF not in ttFont["gasp"].gaspRange:
-        yield WARN, ("'gasp' table does not have a value for all"
-                     " sizes (gaspRange 0xFFFF). It should be set to 1.")
+        yield WARN, ("'gasp' table does not have an entry for all"
+                     " font sizes (gaspRange 0xFFFF).")
       else:
+        gasp_meaning = {
+          0x01: "- Use gridfitting",
+          0x02: "- Use grayscale rendering",
+          0x04: "- Use gridfitting with ClearType symmetric smoothing",
+          0x08: "- Use smoothing along multiple axes with ClearType®"
+        }
+        table = []
+        for key in ttFont["gasp"].gaspRange.keys():
+          value = ttFont["gasp"].gaspRange[key]
+          meaning = []
+          for flag, info in gasp_meaning.items():
+            if value & flag:
+              meaning.append(info)
+
+          meaning = "\n\t".join(meaning)
+          table.append(f"PPM <= {key}:\n\tflag = 0x{value:02X}\n\t{meaning}")
+
+        table = "\n".join(table)
+        yield INFO, ("These are the ppm ranges declared on the"
+                    f" gasp table:\n\n{table}\n")
+
         for key in ttFont["gasp"].gaspRange.keys():
           if key != 0xFFFF:
             yield WARN, ("'gasp' table has a gaspRange of {} that"
-                         " may be unneccessary.").format(hex(key))
+                         " may be unneccessary.").format(key)
             failed = True
           else:
-            value = ttFont["gasp"].gaspRange[key]
+            value = ttFont["gasp"].gaspRange[0xFFFF]
             if value != 0x0F:
               failed = True
-              yield WARN, ("gaspRange {} value {} should be set"
-                           " to 0x0F.").format(hex(key), value)
+              yield WARN, (f"gaspRange 0xFFFF value {value:%02X}"
+                            " should be set to 0x0F.")
         if not failed:
           yield PASS, ("'gasp' table is correctly set, with one "
                        "gaspRange:value of 0xFFFF:0x0F.")
@@ -1245,20 +1252,6 @@ def com_google_fonts_check_074(ttFont):
     yield PASS, ("None of the ASCII-only NAME table entries"
                  " contain non-ASCII characteres.")
 
-
-@check(
-  id = 'com.google.fonts/check/080',
-  conditions = ['family_metadata']
-)
-def com_google_fonts_check_080(family_metadata):
-  """METADATA.pb: Ensure designer simple short name."""
-  if len(family_metadata.designer.split(" ")) >= 4 or \
-     " and " in family_metadata.designer or \
-     "." in family_metadata.designer or \
-     "," in family_metadata.designer:
-    yield FAIL, "\"designer\" key must be simple short name"
-  else:
-    yield PASS, "Designer is a simple short name"
 
 @condition
 def listed_on_gfonts_api(family_metadata):
@@ -2258,7 +2251,7 @@ def remote_styles(family_metadata):
         fonts.append([file_name, TTFont(file_obj)])
     return fonts
 
-  if (not listed_on_gfonts_api or
+  if (not listed_on_gfonts_api(family_metadata) or
       not family_metadata):
     return None
 
@@ -2292,10 +2285,11 @@ def github_gfonts_ttFont(ttFont, license):
 
   from fontbakery.utils import download_file
   from fontTools.ttLib import TTFont
+  from urllib.request import HTTPError
   LICENSE_DIRECTORY = {
     "OFL.txt": "ofl",
     "UFL.txt": "ufl",
-    "APACHE.txt": "apache"
+    "LICENSE.txt": "apache"
   }
   filename = os.path.basename(ttFont.reader.file.name)
   fontname = filename.split('-')[0].lower()
@@ -2303,7 +2297,11 @@ def github_gfonts_ttFont(ttFont, license):
          "/{}/{}/{}").format(LICENSE_DIRECTORY[license],
                              fontname,
                              filename)
-  return TTFont(download_file(url))
+  try:
+    fontfile = download_file(url)
+    return TTFont(fontfile)
+  except HTTPError:
+    return None
 
 
 @check(
@@ -2569,6 +2567,7 @@ def com_google_fonts_check_131(ttFont, style):
 
 @check(
   id = 'com.google.fonts/check/153',
+  conditions = ['is_ttf'],
   rationale = """
     Visually QAing thousands of glyphs by hand is tiring. Most glyphs can only
     be constructured in a handful of ways. This means a glyph's contour count
@@ -2623,15 +2622,15 @@ def com_google_fonts_check_153(ttFont):
       cmap = ttFont['cmap'].getcmap(PLATFORM_ID__WINDOWS,
                                     PLAT_ENC_ID__UCS2).cmap
       bad_glyphs_name = [("Glyph name: {}\t"
-                          "Counters detected: {}\t"
+                          "Contours detected: {}\t"
                           "Expected: {}").format(cmap[name],
                                                  count,
                                                  pretty_print_list(expected))
                          for name, count, expected in bad_glyphs]
       yield WARN, (("This check inspects the glyph outlines and detects the"
-                    " total number of counters in each of them. The expected"
+                    " total number of contours in each of them. The expected"
                     " values are infered from the typical ammounts of"
-                    " counters observed in a large collection of reference"
+                    " contours observed in a large collection of reference"
                     " font families. The divergences listed below may simply"
                     " indicate a significantly different design on some of"
                     " your glyphs. On the other hand, some of these may flag"
@@ -2696,6 +2695,7 @@ def com_google_fonts_check_155(ttFont, font_metadata):
 @condition
 def familyname_with_spaces(familyname):
   FAMILY_WITH_SPACES_EXCEPTIONS = {'VT323': 'VT323',
+                                   'K2D': 'K2D',
                                    'PressStart2P': 'Press Start 2P',
                                    'ABeeZee': 'ABeeZee',
                                    'IBMPlexMono': 'IBM Plex Mono',

@@ -528,15 +528,15 @@ def test_check_032():
   assert status == WARN
 
 
-def NOT_IMPLEMENTED_test_check_054():
+def test_check_054():
   """ Show hinting filesize impact. """
-  # from fontbakery.specifications.googlefonts import com_google_fonts_check_054 as check
-  # TODO: Implement-me!
-  #
-  # code-paths:
-  # - WARN, code="ttfa-missing"
-  # - WARN, code="ttfa-bug"
-  # - INFO
+  from fontbakery.specifications.googlefonts import (com_google_fonts_check_054 as check,
+                                                     ttfautohint_stats)
+  font = "data/test/mada/Mada-Regular.ttf"
+
+  print('Test this check always emits an INFO result...')
+  status, message = list(check(TTFont(font), ttfautohint_stats(font)))[-1]
+  assert status == INFO
 
 
 def test_check_055():
@@ -578,10 +578,15 @@ def NOT_IMPLEMENTED_test_check_056():
   # code-paths:
   # - FAIL, code="lacks-version-strings"
   # - INFO, "Could not detect which version of ttfautohint was used in this font."
-  # - SKIP, TTFAUTOHINT_MISSING_MSG
   # - WARN, "detected an old ttfa version"
   # - PASS
   # - FAIL, code="parse-error"
+
+
+def NOT_IMPLEMENTED_test_check_has_ttfautohint_params():
+  """ Font has ttfautohint params? """
+  # from fontbakery.specifications.googlefonts import com_google_fonts_check_has_ttfautohint_params as check
+  # TODO: Implement-me!
 
 
 def test_check_061():
@@ -724,45 +729,6 @@ def test_check_074():
   ttFont['name'].names[index].string = "Fantástico!".encode(encoding="utf-8")
   status, message = list(check(ttFont))[-1]
   assert status == PASS
-
-
-def test_check_080():
-  """ METADATA.pb: Ensure designer simple short name. """
-  from fontbakery.specifications.googlefonts import (com_google_fonts_check_080 as check,
-                                                     family_metadata,
-                                                     family_directory)
-  print ("Test PASS with a good designer name...")
-  # Our reference Merriweather family has got a good entry
-  # for designer name on its METADATA.pb file:
-  fonts = ["data/test/merriweather/Merriweather-Regular.ttf"]
-  md = family_metadata(family_directory(fonts))
-  status, message = list(check(md))[-1]
-  assert status == PASS
-
-  print ("Test FAIL: 4 names or more is too much.")
-  md.designer = "Dude With Many Surnames"
-  status, message = list(check(md))[-1]
-  assert status == FAIL
-
-  print ("Test PASS: but 3 names is OK!")
-  md.designer = "This Looks Good"
-  status, message = list(check(md))[-1]
-  assert status == PASS
-
-  print ("Test FAIL: We won't accept designer names containing dots.")
-  md.designer = "user.name"
-  status, message = list(check(md))[-1]
-  assert status == FAIL
-
-  print ("Test FAIL: A list of names is also not OK.")
-  md.designer = "Peter, Joanna, Bianca"
-  status, message = list(check(md))[-1]
-  assert status == FAIL
-
-  print ("Test FAIL: And here's another bad one...")
-  md.designer = "Alice and Bob"
-  status, message = list(check(md))[-1]
-  assert status == FAIL
 
 
 def test_check_081():

@@ -32,7 +32,7 @@ def fontforge_check_results(font):
   try:
     return {
       "validation_state": int(ret_val),
-      "ff_err_messages": ff_err_messages
+      "ff_err_messages": ff_err_messages.decode("utf-8")
     }
   except:
     return None
@@ -592,7 +592,7 @@ def com_google_fonts_check_058(ttFont):
     import re
     bad_names = []
     for _, glyphName in enumerate(ttFont.getGlyphOrder()):
-      if glyphName in [".null", ".notdef"]:
+      if glyphName in [".null", ".notdef", ".ttfautohint"]:
         # These 2 names are explicit exceptions
         # in the glyph naming rules
         continue
