@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+protobuf = ">=3.4.0"
+requests = "==2.11.1"
+"beautifulsoup4" = "==4.5.1"
+"bs4" = "==0.0.1"
+defusedxml = "==0.4.1"
+lxml = "==3.5.0"
+FontTools = ">=3.19"
+Unidecode = "==0.4.19"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
