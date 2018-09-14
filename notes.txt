@@ -13,6 +13,7 @@ sudo apt install python3-pip -y
 python3.6 -m pip install --upgrade pip
 cd fontbakery 
 python3.6 -m pip install fontbakery  
+cp snippets/bash_completion /etc/bash_completion.d/fontbakery
 
 
 Installing Fontbakery on a bionic CT (lxc) for testing/devel
@@ -38,15 +39,17 @@ pip3 install --upgrade ufolint
 apt install python3-future
 
 
-Installing on macOS
+Installing on macOS (High Sierra)
 ==================
 
-cd ~/Documents/
+you will need python3.6 installed from python.org
+(there are codec issues with 3.7)
+
 git clone https://github.com/n7s/fontbakery.git
 cd fontbakery
-virtualenv venv --python=python3
+virtualenv venv --python=python3.6
 source venv/bin/activate
-pip install -e .
+pip3install -e .
 
 
 Running checks
@@ -83,11 +86,16 @@ adding two new files which will create a subcommand (with completion) where we c
     Lib/fontbakery/commands/check_silfonts.py
     Lib/fontbakery/specifications/silfonts.py
 
+    Lib/fontbakery/commands/check_silufofonts.py
+    Lib/fontbakery/specifications/silufofonts.py
+
 list our checks:
-fontbakery check-silfonts -L   
+fontbakery check-silfonts -L
+fontbakery check-silufofonts -L
 
 run our tests: (in the results folder for example)
-fontbakery check-silfonts --verbose *.ttf --ghmarkdown fontbakery-ttf-report.md
+fontbakery check-silfonts --verbose results/*.ttf --ghmarkdown fontbakery-ttf-report.md
+fontbakery check-silufofonts --verbose source/*.ufo --ghmarkdown fontbakery-ufo-report.md
 
 The next step is discussing/deciding which tests we want to include or exclude and to start adding new ones based on the specs described in UFOchecks: https://github.com/silnrsi/ufochecks
 
