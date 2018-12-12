@@ -76,6 +76,8 @@ register_check = specification.register_check
 register_condition = specification.register_condition
 # ----------------------------------------------------------------------------
 
+basic_checks = Section("Basic checks")
+
 
 @register_condition
 @condition
