@@ -1,14 +1,13 @@
 Now that fontbakery is stabilizing here are my notes. 
-Last update: Sept 12th 2018.
+Last update: December 2018.
 
-installing the current release inside a xenial smith VM
+installing the current release from Pypi inside a xenial smith VM
 ========================================================
 
 sudo add-apt-repository ppa:jonathonf/python-3.6
 sudo apt-get update -y
 apt-get install python3.6 -y 
 cd /usr/local/builds
-git clone https://github.com/n7s/fontbakery.git
 sudo apt install python3-pip -y
 python3.6 -m pip install --upgrade pip
 cd fontbakery 
@@ -16,7 +15,7 @@ python3.6 -m pip install fontbakery
 cp snippets/bash_completion /etc/bash_completion.d/fontbakery
 
 
-Installing Fontbakery on a bionic CT (lxc) for testing/devel
+Installing Fontbakery (the fork) on a bionic CT (lxc) for testing/devel
 =============================================================
 
 lxc launch images:ubuntu/bionic fontbakery-bionic
@@ -25,19 +24,20 @@ lxc exec fontbakery-bionic bash
 apt install git vim tree htop 
 git clone https://github.com/n7s/fontbakery.git
 apt install python3-pip
-apt install python-libxml2
+apt install python3-libxml2
 apt install libxml2-dev libxslt1-dev
 apt install python-fontforge
+pip3 install --upgrade pip
 cd fontbakery 
-pip3 install -e . 
+pip install -e . 
 
 apt install bash-completion 
-vim /etc/bash.bashrc (uncomment completion block)
+vim /etc/bash.bashrc (then uncomment the completion block before launching a new shell)
 cp snippets/bash_completion /etc/bash_completion.d/fontbakery
 apt install software-properties-common
-pip3 install --upgrade ufolint
 apt install python3-future
 
+fontbakery --version   (will show you if things are installed as intended) 
 
 Installing on macOS (High Sierra)
 ==================
@@ -66,11 +66,17 @@ fontbakery check-googlefonts --verbose *.ttf --no-colors &> fontbakery-ttf-repor
 run all checks in a subcommand on a set of ttf binary files (GitHub-flavoured markdown):
 fontbakery check-googlefonts --verbose *.ttf --ghmarkdown fontbakery-ttf-report.md 
 
-run a particular check from a subcommand (e.g. check for DSIG presence):
-fontbakery check-googlefonts --verbose --no-colors --checkid com.google.fonts/check/045 *.ttf &> fontbakery-report-google-045.txt
+run a particular check from a subcommand (e.g. check for DSIG presence) .txt and .md:
+fontbakery check-googlefonts --verbose --no-colors --checkid com.google.fonts/check/045 *.ttf &> fontbakery-report-googlefonts-checks-045.txt
+fontbakery check-googlefonts --verbose --checkid com.google.fonts/check/045 *.ttf --ghmarkdown fontbakery-report-googlefonts-checks-045.md
 
-only run a particular check from another subcommand (with exclusion by id):
-fontbakery check-opentype --verbose --no-colors --exclude-checkid com.google.fonts/check/007 *.ttf &> fontbakery-report-without-google-007.txt
+run a particular check from a subcommand (e.g. check fstype values) .txt and .md:
+fontbakery check-googlefonts --verbose --no-colors --checkid com.google.fonts/check/016 *.ttf &> fontbakery-report-googlefonts-checks-016.txt
+fontbakery check-googlefonts --verbose --checkid com.google.fonts/check/016 *.ttf --ghmarkdown fontbakery-report-googlefonts-checks-016.md
+
+only run particular checks from another subcommand while excluding one .txt and .md::
+fontbakery check-opentype --verbose --no-colors --exclude-checkid com.google.fonts/check/007 *.ttf &> fontbakery-report-without-googlefont-check-007.txt
+fontbakery check-opentype --verbose -exclude-checkid com.google.fonts/check/007 *.ttf --ghmarkdown fontbakery-report-without-googlefont-check-007.md
 
 run all checks in another subcommand on a set of ufo sources:
 fontbakery check-ufo-sources --verbose ../source/*.ufo --ghmarkdown fontbakery-ufo-report.md
