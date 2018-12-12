@@ -6,9 +6,9 @@ __author__ = 'Nicolas Spalinger'
 import sys
 from functools import partial
 
+from fontbakery.specifications.ufo_sources import specification
 from fontbakery.commands.check_specification import (
     runner_factory as super_runner_factory, main as super_main)
-from fontbakery.specifications.ufo_sources import specification
 
 # The values dict will probably get one or more specific blacklists
 # for the google font project. It would be good if it was not necessary

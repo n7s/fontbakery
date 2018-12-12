@@ -5,10 +5,9 @@ __author__ = 'Nicolas Spalinger'
 
 import sys
 from functools import partial
-
+from fontbakery.specifications.silfonts import specification
 from fontbakery.commands.check_specification import (
     runner_factory as super_runner_factory, main as super_main)
-from fontbakery.specifications.silfonts import specification
 
 SILFONTS_SPECIFICS = {}
 
