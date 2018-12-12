@@ -1,6 +1,7 @@
 import os
 from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.checkrunner import Status
+from fontbakery import __version__ as version
 
 LOGLEVELS=["ERROR","FAIL","WARN","SKIP","INFO","PASS"]
 
@@ -44,8 +45,8 @@ class GHMarkdownReporter(SerializeReporter):
 
     check["logs"].sort(key=lambda c: c["status"])
     logs = "".join(map(self.log_md, check["logs"]))
-    github_search_url = ("[{}](https://github.com/googlefonts/fontbakery/"
-                         "search?q={})").format(checkid, checkid)
+    github_search_url = (f"[{checkid}](https://github.com/googlefonts/fontbakery/"
+                          "search?q={checkid})")
     return self.html5_collapsible("{} <b>{}:</b> {}".format(self.emoticon(check["result"]),
                                                             check["result"],
                                                             check["description"]),
@@ -78,6 +79,7 @@ class GHMarkdownReporter(SerializeReporter):
             checks[key].append(check)
 
     md = "## Fontbakery report\n\n"
+    md += f"Fontbakery version: {version}\n\n"
 
     if family_checks:
       family_checks.sort(key=lambda c: c["result"])

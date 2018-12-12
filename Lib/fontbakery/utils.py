@@ -64,11 +64,11 @@ def get_name_entry_strings(font,
 
 
 def name_entry_id(name):
-  from fontbakery.constants import (NAMEID_STR,
-                                    PLATID_STR)
-  return "[{}({}):{}({})]".format(NAMEID_STR[name.nameID],
+  from fontbakery.constants import (NameID,
+                                    PlatformID)
+  return "[{}({}):{}({})]".format(NameID(name.nameID).name,
                                   name.nameID,
-                                  PLATID_STR[name.platformID],
+                                  PlatformID(name.platformID).name,
                                   name.platformID)
 
 
@@ -102,13 +102,13 @@ def glyph_contour_count(font, name):
 
 def get_font_glyph_data(font):
     """Return information for each glyph in a font"""
-    from fontbakery.constants import (PLATFORM_ID__WINDOWS,
-                                      PLAT_ENC_ID__UCS2)
+    from fontbakery.constants import (PlatformID,
+                                      WindowsEncodingID)
     font_data = []
 
     try:
-        subtable = font['cmap'].getcmap(PLATFORM_ID__WINDOWS,
-                                        PLAT_ENC_ID__UCS2)
+        subtable = font['cmap'].getcmap(PlatformID.WINDOWS,
+                                        WindowsEncodingID.UNICODE_BMP)
         if not subtable:
           # Well... Give it a chance here...
           # It may be using a different Encoding_ID value
@@ -163,18 +163,23 @@ def download_file(url):
   return BytesIO(urlopen(url).read())
 
 
-def glyph_has_ink(font, name):
+def cff_glyph_has_ink(font, glyph_name):
   # type: (TTFont, Text) -> bool
-  """Checks if specified glyph has any ink.
+  if 'CFF2' in font:
+    top_dict = font['CFF2'].cff.topDictIndex[0]
+  else:
+    top_dict = font['CFF '].cff.topDictIndex[0]
+  char_strings = top_dict.CharStrings
+  char_string = char_strings[glyph_name]
+  bounds = char_string.calcBounds(char_strings)
+  if bounds is not None:
+    return True
 
-  That is, that it has at least one defined contour associated.
-  Composites are considered to have ink if any of their components have ink.
-  Args:
-      font:       the font
-      glyph_name: The name of the glyph to check for ink.
-  Returns:
-      True if the font has at least one contour associated with it.
-  """
+  return False
+
+
+def ttf_glyph_has_ink(font, name):
+  # type: (TTFont, Text) -> bool
   glyph = font['glyf'].glyphs[name]
   glyph.expand(font['glyf'])
 
@@ -191,6 +196,34 @@ def glyph_has_ink(font, name):
       return True
 
   return False
+
+
+def glyph_has_ink(font, name):
+  # type: (TTFont, Text) -> bool
+  """Checks if specified glyph has any ink.
+
+  That is, that it has at least one defined contour associated.
+  Composites are considered to have ink if any of their components have ink.
+  Args:
+      font:       the font
+      glyph_name: The name of the glyph to check for ink.
+  Returns:
+      True if the font has at least one contour associated with it.
+  """
+  if 'glyf' in font:
+    return ttf_glyph_has_ink(font, name)
+  elif 'CFF ' in font:
+    return cff_glyph_has_ink(font, name)
+  else:
+    raise Exception("Could not find 'glyf' or 'CFF ' table.")
+
+  # TODO: replace lines above with lines below once the bug in
+  #       the fonttools CFF2 charstring calcBounds method is fixed
+
+  # elif ('CFF ' in font) or ('CFF2' in font):
+  #   return cff_glyph_has_ink(font, name)
+  # else:
+  #   raise Exception("Could not find 'glyf', 'CFF ', or 'CFF2' table.")
 
 
 def assert_results_contain(check_results, expected_status, expected_msgcode=None):

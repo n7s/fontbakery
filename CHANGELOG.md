@@ -1,6 +1,184 @@
 Below are the most important changes from each release.
 A more detailed list of changes is available in the corresponding milestones for each release in the Github issue tracker (https://github.com/googlefonts/fontbakery/milestones?state=closed).
 
+## 0.6.6 (2018-Dec-17)
+### Changes to existing checks
+  - **[com.google.fonts/check/153]:** Disable "expected contour count" check for variable fonts. There's plenty of alternative ways of constructing glyphs with multiple outlines for each feature in a VarFont. The expected contour count data for this check is currently optimized for the typical construction of glyphs in static fonts. (issue #2262)
+
+## 0.6.5 (2018-Dec-10)
+### New Checks
+  - **[com.google.fonts/check/metadata/parses]:** "Check METADATA.pb parse correctly." (issue #2248)
+  - **[com.google.fonts/check/fvar_name_entries]:** "All name entries referenced by fvar instances exist on the name table?" (issue #2069)
+  - **[com.google.fonts/check/varfont_has_instances]:** "A variable font must have named instances." (issue #2127)
+  - **[com.google.fonts/check/varfont_weight_instances]:** "Variable font weight coordinates must be multiples of 100." (issue #2258)
+
+### Bug fixes
+  - **[com.google.fonts/check/054]:** Correct math in report of font file size change by properly converting result to a percentage.
+  - **[com.google.fonts/check/100]:** Fix check that would never FAIL. Now it runs correctly. (issue #1836)
+
+### Changes to existing checks
+  - **[com.google.fonts/check/046]:** Removed restriction on CFF fonts (and added restriction on CFF2 pending a fonttools bug fix) because the helper method `glyph_has_ink` now handles `CFF` as well as `glyf`.
+  - **[com.google.fonts/check/049]:** Removed restriction on CFF fonts (and added restriction on CFF2 pending a fonttools bug fix) because the helper method `glyph_has_ink` now handles `CFF` as well as `glyf`.
+
+
+## 0.6.4 (2018-Dec-03)
+### New Features
+  - Nikolaus Waxweiler has contributed an HTML reporter. It can be used by passing -html filename.html to the command line. Thanks a lot!
+
+### New checks
+  - **[com.abobe.fonts/check/postscript_name_cff_vs_name]:** CFF table FontName must match name table ID 6 (PostScript name). (PR #2229)
+
+### Bug fixes
+  - **[com.google.fonts/check/011]:** Safeguard against reporting style=`None` by only running the check when all font files are named canonically. (issue #2196)
+  - **[com.google.fonts/check/065]:** Fix AttributeError: 'int' object has no attribute 'items'. (issue #2203)
+  - **[FontBakeryCondition:remote_styles]:** fix UnboundLocalError. local variable 'remote_style' was referenced before assignment. (issue #2204)
+
+### Changes to existing checks
+  - **[com.google.fonts/check/011]:** List which glyphs differ among font files (issue #2196)
+  - **[com.google.fonts/check/043]:** unitsPerEm check on OpenType profile is now less opinionated. Only FAILs when strictly invalid according to the spec. (issue #2185)
+  - **[com.google.fonts/check/116]:** Implement stricter criteria for the values of unitsPerEm on Google Fonts. (issue #2185)
+
+### Other relevant code changes
+  - **[setup.py]:** display README.md as long-description on PyPI webpage. (issue #2225)
+  - **[README.md]:** mention our new developer chat channel at https://gitter.im/fontbakery/Lobby
+  - **[Dependencies]:** The following 2 modules are actually needed by fontTools: fs and unicodedata2.
+
+
+## 0.6.3 (2018-Nov-26)
+### Bug fixes
+  - **[GHMarkdown output]:** PR #2167 (__str__ for Section and Check) was reverted because it was causing the ghmarkdown output to crash. We may get back to it later, but being more careful about the side effects of it. (issue #2194)
+  - **[com.google.fonts/check/028]:** Also search for a license file on the git-repo rootdir if the font project is in a repo. (issue #2087)
+  - **[com.google.fonts/check/062]:** fix a typo leading to a bad string formatting syntax crash. (issue #2183)
+  - **[code-test: check/154]:** Fixed the code-test and made it safer under eventual conectivity issues. (issue #1712)
+
+### Changes to existing checks
+  - **[com.google.fonts/check/ttx-roundtrip]:** Improved the FAIL message to give the users a hint about what could have gone wrong. The most likely reason is a shortcoming on fonttools that makes TTX generate corrupt XML files when dealing with contol code chars in the name table. (issue #2212)
+  - **[com.google.fonts/check/001]:** Accept variable font filenames with Roman/Italic suffixes (issue #2214)
+  - **[com.google.fonts/check/034]:** Downgrade xAvgWidth check from FAIL to WARN since sometimes it diverges from GlyphsApp. Also, it seems that the value is not actually used on relevant programs. I still want to clarify what's going on with GlyphsApp calculations of this value. Once that's figured out, we may redefine the severity of the check once again. (issue #2095)
+  - **[com.google.fonts/check/097]:** Accept variable font filenames with Roman/Italic suffixes (issue #2214)
+  - **[com.google.fonts/check/102]:** Check for consistency of copyright notice strings on both METADATA.pb and on name table entries. (issue #2210)
+  - **[com.google.fonts/check/105]:** Accept variable font filenames with Roman/Italic suffixes (issue #2214)
+
+
+## 0.6.2 (2018-Nov-19)
+### New checks
+  - **[com.google.fonts/check/ftxvalidator_is_available]:** Detects whether the ftxvalidator is installed on the system or not.
+
+### Bug fixes
+  - **[com.google.fonts/check/098]:** In some cases the check did not yield any result. (issue #2206)
+  - **[com.google.fonts/check/ttx-roundtrip]:** Delete temporary XML that is generated by the TTX round-tripping check. (issue #2193)
+  - **[com.google.fonts/check/119]:** Fix `'msg'` referenced before assignment (issue #2201)
+
+### Changes to existing checks
+  - **[com.google.fonts/check/130]:** update italic angle check with "over -30 degrees" FAIL and "over -20 degrees" WARN (#2197)
+  - **[com.google.fonts/check/ttx-roundtrip]:** Emit a FAIL when TTX roundtripping results in a parsing error (ExpatError) since a malformed XML most likely means an issue with the font. (issue #2205)
+
+
+## 0.6.1 (2018-Nov-11)
+### New checks
+  - **['com.google.fonts/check/aat']:** "Are there unwanted Apple tables?"
+
+### Bug fixes
+  - **[com.google.fonts/check/fontbakery_version]:** Fix crash
+  - **[com.google.fonts/check/153]:** Fix expected contour count for glyphs zerowidthjoiner(uni200D) and zerowidthnonjoiner(uni200C) from 1 to 0
+
+### Changes to existing checks
+  - **[com.google.fonts/check/053]**: Clarify unwanted tables
+
+## 0.6.0 (2018-Nov-08)
+### Noteworthy changes
+  - Now we have our documentation hosted at https://font-bakery.readthedocs.io/
+  - Limit ammount of details printed by fontval checks and group fontval checks to make their data more readable.
+  - Print Font Bakery version on the header of Markdown reports, so that we know if a report was generated with an old version. (issue #2133)
+  - Add 'axes' field to protocol-buffer schema
+  - moving FontVal wrapper to a separate spec (issue #2169)
+  - Added a CODE_OF_CONDUCT.md
+
+### new checks
+  - **[com.google.fonts/check/vttclean]:** There must not be VTT Talk sources in the font. (issue #2059)
+  - **[com.google.fonts/check/varfont/has_HVAR]:** Var Fonts have HVAR table to avoid costly text-layout operations on some platforms. (issue #2119)
+  - **[com.google.fonts/check/varfont/has_MVAR] (but temporarily disabled):** Var Fonts must have an MVAR table layout-software depend on it. (issue #2118)
+  - **[com.google.fonts/check/fontbakery_version]:** A new 'meta' check to ensure Font Bakery is up-to-date so that we avoid relying on out-dated checking routines. (issue #2093)
+
+### modifications to existing checks
+  - Correct the error message for the check for identical glyph names. Avialable and missing style names were swapped.
+  - Mute FVal E5200 (based on outdated OT spec) for var fonts. (issue #2109)
+  - FontVal outline intersection checks should not run for VF. Variable Fonts typically have lots of intersecting contours and components.
+  - Adopt FVal W0022 rationale for com.google.fonts/check/052 and disable this FontVal check as it is already covered by check/052 routines.
+  - disable FVal check W0020: "Tables are not in optimal order" (fixes issue #2105)
+  - Improve rationale for com.google.fonts/check/058
+  - check/158: use Message obj to differentiate kinds of FAILs (issue #1974)
+  - check/158: test the PASS scenarios for full 18-style family (issue #1974)
+  - factor out "style_with_spaces" as a condition. (issue #1974)
+  - test FAIL "invalid-entry" on check/158 (issue #1974)
+  - test FAIL "bad-familyname" on check/158 (issue #1974)
+  - Disable FontVal E4012 (GDEF header v1.3 not yet recognized) (issue #2131)
+  - skip check/072 if font is VTT hinted (issue #2139)
+  - do not run check/046 on CFF fonts because the helper method `glyph_has_ink` directly references `glyf`. In the future we may refactor it to also deal with CFF fonts. (issue #1994)
+  - com_google_fonts_check_018: Downgrade archVendID to WARN
+  - com.google.fonts/check/042 Add rationale. Fixes https://github.com/googlefonts/fontbakery/issues/2157
+
+### Much more funky details...
+  This is just a copy of several git log messages. Ideally I shuld clean these up for the sake of clarity...
+  - ufo_sources: put existing checks into own section. Using the section name in reports requires using sensible section names.
+  - [snippets] fontbakery-check-upstream.py added. This script will allow users to run fontbakery on an upstream github repository. The user has to provide the repo url and the directory containing the ttfs.
+  - add code-test and bugfix check/162. Now the check ensures no ribbi font has a nameID=17 and all non-ribbi fonts have it and that it has a correct value. If any of the above is not true, the check emits a FAIL. (issue #1974)
+  - add code-test and bugfix check/161. Now the check ensures no ribbi font has a nameID=16 and all non-ribbi fonts have it and that it has a correct value. If any of the above is not true, the check emits a FAIL. (issue #1974)
+  - Bump up requests version to mitigate CVE
+  - [googlefonts.py] modify ttfa param testing string literal. See https://github.com/googlefonts/fontbakery/pull/2116#issuecomment-431725719
+  - Do not check the ttfautohint params if font is not hinted. Skip the com.google.fonts/check/has_ttfautohint_params test if the font is not hinted using ttfautohint
+  - fix implementation of blacklisting of FontVal checks (follow up for PRs #2102 and #2104)
+  - Add comments to fontval check downgrades and silencing and also fix the implementation of silencing them. (issue #2102)
+  - com.google.fonts/check/037: Downgrade missing Mac name table records to warn. Fontmake does not generate mac name table records. Apparently, they're not needed, https://github.com/googlei18n/fontmake/issues/414
+  - Decode ufolint output for better text display
+  - Remove unnecessary dependencies. Custom Freetype no longer needed because we use Hintak's latest binaries for Ms Font Validator.
+  - com.google.fonts/check/037: Simplify Ms Font Val subprocess call. In Windows, a .exe can be run without specifying the .exe extension. Therefore all three platforms can run FontValidator using the same call.
+  - travis: Download and install Ms FontValidator
+  - Raise NotImplementedError if user's system is not Unix based or Win
+  - Run FontValidator.exe if user's OS is Win
+  - Improve Font Validator installation and install instructions
+    - Removed prebuilt FontVal. Use Hintak's binaries instead.
+    - Drop render tests. Diffbrowsers should be used.
+    - Added instructions for MAC and GNU Linux
+  - [prebuilt] remove ots-sanitize binary. Transitioned to opentype-sanitizer in #2092
+  - implement code-test for com.google.fonts/check/157 and bugfix 157 and 158 (were reporting PASS even when FAILing) (issue #1974)
+  - specify familyname and familyname_with_spaces as conditions to all checks that rely on those. Otherwise non-cannonical filenames could lead to fontbakery ERRORs. (issue #1974)
+  - fix code-test for com.google.fonts/check/156 (issue #1974)
+  - INSTALL_*.md: remove ots installation instructions, no longer needed as we install it automatically via pip now
+  - general_test.py: test ots with invalid file
+  - use ots.sanitize() instead of subprocess in check036
+  - setup.py: add opentype-sanitizer to install_requires
+  - fix check/028 & add a test for family_directory condition. Now a license file on the current working directory is properly detected. (issue #2087)
+  - Remove printing of number of checks in sections
+  - Remove Python 2 compatibility remnant
+  - check_specification: Use CheckRunner directly instead of runner_factory
+  - Add check in/exclude test for no in/excluding
+  - Python 3 does not need explicit derivation from object
+  - improving the comments in code-test/008 so that it can be used as a didactic example of the purpose of code-tests.
+  - Avoid private attribute in test
+  - Add test for check selection
+  - Make in/exclude check parameters fuzzy
+  - Only ignore deprecation warnings from (from|to)string
+  - Mute deprecation warnings. Temporarily solves issue #2079
+  - Add tests for loading specifications without errors
+  - Move vtt_talk_sources to shared conditions
+  - PriorityLevel enum (issue #2071)
+  - remove PLATID_STR and NAMEID_STR as now those strings can be directly infered from the corresponding enum entries. Thanks for the tip, Nikolaus Waxweiler! (issue #2071)
+  - MacStyle and FsSelection enums (issue #2071)
+  - PANOSE_Proportion and IsFixedWidth enums (issue #2071)
+  - PlatformID and *EncondingID enums (issue #2071)
+  - using an enum for the NameIDs (issue #2071)
+  - print messages telling the user where JSON and Markdown reports were saved to. (issue #2050)
+  - Add code-tests to ttx roundtrip check and fix issue #2048 by not checking ttx roundtripping on fonts that did not yet have VTT Talk sources cleaned out of its TSI* tables (this should always be done prior to release).
+  - Add `__main__` entry point. Makes it possible to run fontbakery from `python -m fontbakery`. Useful if Python script path not in PATH.
+  - Skip TTF-only checks for OTF fonts (issue #2040)
+  - bump up fontTools version requirement due to our usage of the getBestCmap method. (issue #2043)
+  - [specifications/googlefonts] condition github_gfonts_ttFont it is LICENSE.txt for apache
+  - [specifications/googlefonts] condition registered_vendor_ids open file as utf-8
+  - [specifications/general] fix condition fontforge_check_results for python3 usage (bytes to string)
+  - [INSTALL.md] added removal steps for ots zip archive file and archive directory
+  - [INSTALL.md] modify ots-sanitize installation approach (issue #2041)
+
 ## 0.5.1 (2018-Aug-31)
 This release-cycle focused on addressing the issues brought up by attendees at the MFDOS - Multiple Font Distributors Onboarding Summit- an event organized by Dave Crossland during TypeCon 2018 in Portland, Oregon.
 

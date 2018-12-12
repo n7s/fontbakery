@@ -39,6 +39,7 @@ DEFAULT_LOG_LEVEL = WARN
 from fontbakery.reporters.terminal import TerminalReporter
 from fontbakery.reporters.serialize import SerializeReporter
 from fontbakery.reporters.ghmarkdown import GHMarkdownReporter
+from fontbakery.reporters.html import HTMLReporter
 
 def ArgumentParser(specification, spec_arg=True):
   argument_parser = argparse.ArgumentParser(description="Check TTF files"
@@ -52,24 +53,22 @@ def ArgumentParser(specification, spec_arg=True):
 
   values_keys = specification.setup_argparse(argument_parser)
 
-  select_group = argument_parser.add_mutually_exclusive_group()
-
-  select_group.add_argument(
+  argument_parser.add_argument(
       "-c",
       "--checkid",
       action="append",
       help=(
-          "Explicit check-ids to be executed. "
+          "Explicit check-ids (or parts of their name) to be executed. "
           "Use this option multiple times to select multiple checks."
       ),
   )
 
-  select_group.add_argument(
+  argument_parser.add_argument(
       "-x",
       "--exclude-checkid",
       action="append",
       help=(
-          "Exclude check-ids from execution. "
+          "Exclude check-ids (or parts of their name) from execution. "
           "Use this option multiple times to exclude multiple checks."
       ),
   )
@@ -125,21 +124,18 @@ def ArgumentParser(specification, spec_arg=True):
                       metavar= 'MD_FILE',
                       help='Write a GitHub-Markdown formatted report to MD_FILE.')
 
-  iterargs = sorted(specification.iterargs.keys())
+  argument_parser.add_argument('--html', default=False,
+                      type=argparse.FileType('w', encoding="utf-8"),
+                      metavar= 'HTML_FILE',
+                      help='Write a HTML report to HTML_FILE.')
 
-  def commandline_unicode_arg(bytestring):
-    try:
-      # py2 has .decode
-      return bytestring.decode(sys.getfilesystemencoding())
-    except AttributeError:
-      # py3 should work with the original argument
-      return bytestring
+  iterargs = sorted(specification.iterargs.keys())
 
   gather_by_choices = iterargs + ['*check']
   argument_parser.add_argument('-g','--gather-by', default=None,
                       metavar= 'ITERATED_ARG',
                       choices=gather_by_choices,
-                      type=commandline_unicode_arg,
+                      type=str,
                       help='Optional: collect results by ITERATED_ARG\n'
                       'In terminal output: create a summary counter for each ITERATED_ARG.\n'
                       'In json output: structure the document by ITERATED_ARG.\n'
@@ -199,27 +195,20 @@ def get_spec():
   argument_parser = ThrowingArgumentParser(add_help=False)
   argument_parser.add_argument('specification')
   try:
-    args, unknown = argument_parser.parse_known_args()
+    args, _ = argument_parser.parse_known_args()
   except ArgumentParserError:
     # silently fails, the main parser will show usage string.
     return Spec()
   imported = get_module(args.specification)
   specification = get_module_specification(imported)
   if not specification:
-    raise Exception(f'Can\'t get a specification from {imported}.')
+    raise Exception(f"Can't get a specification from {imported}.")
   return specification
 
-def runner_factory( specification
-                  , explicit_checks=None
-                  , exclude_checks=None
-                  , custom_order=None
-                  , values=None):
-  """ Convenience CheckRunner factory. """
-  return CheckRunner( specification, values
-                    , explicit_checks=explicit_checks
-                    , exclude_checks=exclude_checks
-                    , custom_order=custom_order
-                    )
+# This stub or alias is kept for compatibility (e.g. check-commands, FontBakery
+# Dashboard). The function of the same name previously only passed on all parameters to
+# CheckRunner.
+runner_factory = CheckRunner
 
 def main(specification=None, values=None):
   # specification can be injected by e.g. check-googlefonts injects it's own spec
@@ -251,12 +240,12 @@ def main(specification=None, values=None):
         values_[key] = getattr(args, key)
 
   try:
-    runner = runner_factory(specification
-                     , explicit_checks=args.checkid
-                     , exclude_checks=args.exclude_checkid
-                     , custom_order=args.order
-                     , values=values_
-                     )
+    runner = CheckRunner(specification
+                        , values=values_
+                        , custom_order=args.order
+                        , explicit_checks=args.checkid
+                        , exclude_checks=args.exclude_checkid
+                        )
   except ValueValidationError as e:
     print(e)
     argument_parser.print_usage()
@@ -292,14 +281,29 @@ def main(specification=None, values=None):
                              collect_results_by=args.gather_by)
     reporters.append(mdr.receive)
 
+  if args.html:
+    hr = HTMLReporter(loglevels=args.loglevels,
+                      runner=runner,
+                      collect_results_by=args.gather_by)
+    reporters.append(hr.receive)
+
   distribute_generator(runner.run(), reporters)
 
   if args.json:
     import json
     json.dump(sr.getdoc(), args.json, sort_keys=True, indent=4)
+    print("A report in JSON format has been"
+          " saved to '{}'".format(args.json.name))
 
   if args.ghmarkdown:
     args.ghmarkdown.write(mdr.get_markdown())
+    print("A report in GitHub Markdown format which can be useful\n"
+          " for posting issues on a GitHub issue tracker has been\n"
+          " saved to '{}'".format(args.ghmarkdown.name))
+
+  if args.html:
+    args.html.write(hr.get_html())
+    print(f"A report in HTML format has been saved to '{args.html.name}'")
 
   # Fail and error let the command fail
   return 1 if tr.worst_check_status in (ERROR, FAIL) else 0

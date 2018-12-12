@@ -39,6 +39,22 @@ def test_check_002():
   assert status == FAIL
 
 
+def test_check_ftxvalidator_is_available():
+  """ Is the command `ftxvalidator` (Apple Font Tool Suite) available? """
+  from fontbakery.specifications.general import com_google_fonts_check_ftxvalidator_is_available as check
+
+  # code-paths:
+  # - PASS, "ftxvalidator is available."
+  # - WARN, "ftxvalidator is not available."
+  status, output = check(True)
+  assert status == PASS
+  assert "is available" in output
+
+  status, output = check(False)
+  assert status == WARN
+  assert "is not available" in output
+
+
 def NOT_IMPLEMENTED_test_check_035():
   """ Checking with ftxvalidator. """
   # from fontbakery.specifications.general import com_google_fonts_check_035 as check
@@ -47,7 +63,7 @@ def NOT_IMPLEMENTED_test_check_035():
   # code-paths:
   # - PASS, "ftxvalidator passed this file."
   # - FAIL, "ftxvalidator outputs to stderr."
-  # - WARN, "ftxvalidator returned an error code."
+  # - ERROR, "ftxvalidator returned an error code."
   # - ERROR, "ftxvalidator is not available!"
 
 
@@ -59,46 +75,11 @@ def test_check_036():
   status, _ = list(check(sanitary_font))[-1]
   assert status == PASS
 
-  bogus_font = os.path.join("data", "test", "cabinvfbeta", "CabinVFBeta.ttf")
-  status, _ = list(check(bogus_font))[-1]
+  bogus_font = os.path.join("data", "test", "README.txt")
+  status, output = list(check(bogus_font))[-1]
   assert status == FAIL
-
-  old_path = os.environ["PATH"]
-  os.environ["PATH"] = ""
-  status, _ = list(check(bogus_font))[-1]
-  assert status == ERROR
-  os.environ["PATH"] = old_path
-
-
-def test_check_037():
-  """ MS Font Validator checks """
-  from fontbakery.specifications.general import com_google_fonts_check_037 as check
-
-  font = "data/test/mada/Mada-Regular.ttf"
-  RASTER_EXCEPTION_MESSAGE = ("MS-FonVal: An exception occurred"
-                              " during rasterization testing")
-  # we want to run all FValidator checks only once,
-  # so here we cache all results:
-  fval_results = list(check(font))
-
-  # Then we make sure that the freetype backend we're using
-  # supports the hinting instructions validation checks,
-  # which are refered to as "rasterization testing":
-  # (See also: https://github.com/googlefonts/fontbakery/issues/1524)
-  for status, message in fval_results:
-    assert RASTER_EXCEPTION_MESSAGE not in message
-
-    # and finally, we make sure that there wasn't an ERROR
-    # which would mean FontValidator is not properly installed:
-    assert status != ERROR
-
-  # Simulate FontVal missing.
-  old_path = os.environ["PATH"]
-  os.environ["PATH"] = ""
-  with pytest.raises(OSError) as _:
-    status, message = list(check(font))[-1]
-    assert status == ERROR
-  os.environ["PATH"] = old_path
+  assert "invalid version tag" in output
+  assert "Failed to sanitize file!" in output
 
 
 def NOT_IMPLEMENTED_test_check_038():
@@ -342,7 +323,16 @@ def test_check_053():
   """ Are there unwanted tables ? """
   from fontbakery.specifications.general import com_google_fonts_check_053 as check
 
-  unwanted_tables = ["FFTM", "TTFA", "prop"]
+  unwanted_tables = [
+    "FFTM", # FontForge
+    "TTFA", # TTFAutohint
+    "TSI0", # TSI* = VTT
+    "TSI1",
+    "TSI2",
+    "TSI3",
+    "TSI5",
+    "prop" # FIXME: Why is this one unwanted?
+  ]
   # Our reference Mada Regular font is good here:
   ttFont = TTFont("data/test/mada/Mada-Regular.ttf")
 
@@ -482,3 +472,70 @@ def DISABLED_test_check_078():
   test_otf = ufo2ft.compileOTF(test_font, useProductionNames=True)
   status, _ = list(check(test_otf))[-1]
   assert status == PASS
+
+
+def test_check_ttx_roundtrip():
+  """ Checking with fontTools.ttx """
+  from fontbakery.specifications.general import com_google_fonts_check_ttx_roundtrip as check
+
+  good_font_path = os.path.join("data", "test", "mada", "Mada-Regular.ttf")
+  status, _ = list(check(good_font_path))[-1]
+  assert status == PASS
+
+  # TODO: Can anyone show us a font file that fails ttx roundtripping?!
+  #bad_font_path = os.path.join("data", "test", ...)
+  #status, _ = list(check(bad_font_path))[-1]
+  #assert status == FAIL
+
+def test_is_up_to_date():
+  from fontbakery.specifications.general import is_up_to_date
+  # is_up_to_date(installed, latest)
+  assert(is_up_to_date(installed="0.5.0",
+                          latest="0.5.0") == True)
+  assert(is_up_to_date(installed="0.5.1",
+                          latest="0.5.0") == True)
+  assert(is_up_to_date(installed="0.4.1",
+                          latest="0.5.0") == False)
+  assert(is_up_to_date(installed="0.3.4",
+                          latest="0.3.5") == False)
+  assert(is_up_to_date(installed="1.0.0",
+                          latest="1.0.1") == False)
+  assert(is_up_to_date(installed="2.0.0",
+                          latest="1.5.3") == True)
+  assert(is_up_to_date(installed="0.5.2.dev73+g8c9ebc0.d20181023",
+                          latest="0.5.1") == True)
+  assert(is_up_to_date(installed="0.5.2.dev73+g8c9ebc0.d20181023",
+                          latest="0.5.2") == False)
+  assert(is_up_to_date(installed="0.5.2.dev73+g8c9ebc0.d20181023",
+                          latest="0.5.3") == False)
+
+
+def test_glyph_has_ink():
+  from fontbakery.utils import glyph_has_ink
+  from fontTools.ttLib import TTFont
+
+  print()  # so next line doesn't start with '.....'
+
+  cff_test_font = TTFont(
+    'data/test/source-sans-pro/OTF/SourceSansPro-Regular.otf')
+  print('Test if CFF glyph with ink has ink')
+  assert(glyph_has_ink(cff_test_font, '.notdef') is True)
+  print('Test if CFF glyph without ink has ink')
+  assert(glyph_has_ink(cff_test_font, 'space') is False)
+
+  ttf_test_font = TTFont(
+    'data/test/source-sans-pro/TTF/SourceSansPro-Regular.ttf')
+  print('Test if TTF glyph with ink has ink')
+  assert(glyph_has_ink(ttf_test_font, '.notdef') is True)
+  print('Test if TTF glyph without ink has ink')
+  assert(glyph_has_ink(ttf_test_font, 'space') is False)
+
+  # TODO: uncomment the lines below once the bug in the
+  #       fonttools CFF2 charstring calcBounds method is fixed
+
+  # cff2_test_font = TTFont(
+  #   'data/test/source-sans-pro/VAR/SourceSansVariable-Roman.otf')
+  # print('Test if CFF2 glyph with ink has ink')
+  # assert(glyph_has_ink(cff2_test_font, '.notdef') is True)
+  # print('Test if CFF2 glyph without ink has ink')
+  # assert(glyph_has_ink(cff2_test_font, 'space') is False)

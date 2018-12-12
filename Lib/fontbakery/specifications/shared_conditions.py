@@ -1,3 +1,5 @@
+from typing import List
+
 from fontbakery.callable import condition
 # used to inform get_module_specification whether and how to create a specification
 from fontbakery.fonts_spec import spec_factory # NOQA pylint: disable=unused-import,cyclic-import
@@ -15,8 +17,11 @@ def is_ttf(ttFont):
 
 @condition
 def is_cff(ttFont):
-  return 'CFF ' in ttFont or 'CFF2' in ttFont
+  return 'CFF ' in ttFont
 
+@condition
+def is_cff2(ttFont):
+  return 'CFF2' in ttFont
 
 @condition
 def ligatures(ttFont):
@@ -174,3 +179,11 @@ def regular_ital_coord(ttFont):
 @condition
 def regular_opsz_coord(ttFont):
   return get_instance_axis_value(ttFont, "Regular", "opsz")
+
+
+@condition
+def vtt_talk_sources(ttFont) -> List[str]:
+  """Return the tags of VTT source tables found in a font."""
+  VTT_SOURCE_TABLES = {'TSI0', 'TSI1', 'TSI2', 'TSI3', 'TSI5'}
+  tables_found = [tag for tag in ttFont.keys() if tag in VTT_SOURCE_TABLES]
+  return tables_found

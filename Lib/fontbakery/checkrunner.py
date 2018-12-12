@@ -19,7 +19,7 @@ import importlib
 import traceback
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Iterable
 
 from fontbakery.callable import ( FontbakeryCallable
                                 , FontBakeryCheck
@@ -27,7 +27,7 @@ from fontbakery.callable import ( FontbakeryCallable
                                 , FontBakeryExpectedValue
                                 )
 
-class Status(object):
+class Status:
   """ If you create a custom Status symbol, please keep in mind that
   all statuses are registered globally and that can cause name collisions.
 
@@ -226,7 +226,7 @@ def is_negated(name):
     return True, stripped[1:].strip()
   return False, stripped
 
-class CheckRunner(object):
+class CheckRunner:
   def __init__(self, spec, values
              , values_can_override_spec_names=True
              , custom_order=None
@@ -236,11 +236,6 @@ class CheckRunner(object):
     # TODO: transform all iterables that are list like to tuples
     # to make sure that they won't change anymore.
     # Also remove duplicates from list like iterables
-
-    if explicit_checks and exclude_checks:
-      raise APIViolationError(
-          "Specifying tests to include (explicit_checks) and "
-          "exclude (exclude_checks) is mutually exclusive.", None)
 
     self._custom_order = custom_order
     self._explicit_checks = explicit_checks
@@ -680,7 +675,7 @@ def distribute_generator(gen, targets_callbacks):
     for target in targets_callbacks:
       target(item)
 
-class Section(object):
+class Section:
   """ An ordered set of checks.
 
   Used to structure checks in a specification. A specification consists
@@ -706,6 +701,10 @@ class Section(object):
 
   def __repr__(self):
     return f'<Section: {self.name}>'
+
+  # This was problematic. See: https://github.com/googlefonts/fontbakery/issues/2194
+  # def __str__(self):
+  #   return self.name
 
   def __eq__(self, other):
     """ True if other.checks has the same checks in the same order"""
@@ -775,7 +774,7 @@ class Section(object):
       checks.append(f"{check.id} # {check.description}")
     return checks
 
-class Spec(object):
+class Spec:
   def __init__(self
              , sections=None
              , iterargs=None
@@ -1167,8 +1166,8 @@ class Spec(object):
   def _section_execution_order(self, section, iterargs
                              , reverse=False
                              , custom_order=None
-                             , explicit_checks=None
-                             , exclude_checks=None):
+                             , explicit_checks: Iterable = None
+                             , exclude_checks: Iterable = None):
     """
       order must:
         a) contain all variable args (we're appending missing ones)
@@ -1200,16 +1199,21 @@ class Spec(object):
         continue
       full_order.append(item)
 
+    # Filter down checks. Checks to exclude are filtered for last as the user
+    # might e.g. want to include all tests with "kerning" in the ID, except for
+    # "kerning_something". explicit_checks could then be ["kerning"] and
+    # exclude_checks ["something"].
+    checks = section.checks
     if explicit_checks:
       checks = [
-          check for check in section.checks if check.id in explicit_checks
+          check for check in checks
+          if any(include_string in check.id for include_string in explicit_checks)
       ]
-    elif exclude_checks:
+    if exclude_checks:
       checks = [
-          check for check in section.checks if check.id not in exclude_checks
+          check for check in checks
+          if not any(exclude_string in check.id for exclude_string in exclude_checks)
       ]
-    else:
-      checks = section.checks
 
     scopes = self._analyze_checks(full_order, checks)
     key = lambda item: item[1] # check, signature, scope = item

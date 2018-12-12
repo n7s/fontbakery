@@ -146,3 +146,61 @@ def test_spec_imports():
         'regular_wdth_coord', 'regular_slnt_coord', 'regular_ital_coord',
         'regular_opsz_coord', 'bold_wght_coord', 'familyname')
   _test(spec_imports, expected_tests, expected_conditions)
+
+
+def test_opentype_checks_load():
+  spec_imports = ("fontbakery.specifications.opentype", )
+  specification = spec_factory(default_section=Section("OpenType Testing"))
+  specification.auto_register({}, spec_imports=spec_imports)
+  specification.test_dependencies()
+
+
+def test_googlefonts_checks_load():
+  spec_imports = ("fontbakery.specifications.googlefonts", )
+  specification = spec_factory(default_section=Section("Google Fonts Testing"))
+  specification.auto_register({}, spec_imports=spec_imports)
+  specification.test_dependencies()
+
+
+def test_in_and_exclude_checks():
+  spec_imports = ("fontbakery.specifications.opentype", )
+  specification = spec_factory(default_section=Section("OpenType Testing"))
+  specification.auto_register({}, spec_imports=spec_imports)
+  specification.test_dependencies()
+  explicit_checks = ["06", "07"]  # "06" or "07" in check ID
+  exclude_checks = ["065", "079"]  # "065" or "079" in check ID
+  iterargs = {"font": 1}
+  check_names = {
+      c[1].id for c in specification.execution_order(
+          iterargs,
+          explicit_checks=explicit_checks,
+          exclude_checks=exclude_checks)
+  }
+  check_names_expected = set()
+  for section in specification.sections:
+    for check in section.checks:
+      if any(i in check.id for i in explicit_checks) and not any(
+          x in check.id for x in exclude_checks):
+        check_names_expected.add(check.id)
+  assert check_names == check_names_expected
+
+
+def test_in_and_exclude_checks_default():
+  spec_imports = ("fontbakery.specifications.opentype",)
+  specification = spec_factory(default_section=Section("OpenType Testing"))
+  specification.auto_register({}, spec_imports=spec_imports)
+  specification.test_dependencies()
+  explicit_checks = None  # "All checks aboard"
+  exclude_checks = None  # "No checks left behind"
+  iterargs = {"font": 1}
+  check_names = {
+      c[1].id for c in specification.execution_order(
+          iterargs,
+          explicit_checks=explicit_checks,
+          exclude_checks=exclude_checks)
+  }
+  check_names_expected = set()
+  for section in specification.sections:
+    for check in section.checks:
+      check_names_expected.add(check.id)
+  assert check_names == check_names_expected

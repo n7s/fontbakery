@@ -16,14 +16,18 @@
 import os
 from setuptools import setup
 
+try:
+  readme = open('README.md').read()
+except IOError:
+  readme = ''
 
 setup(
     name="fontbakery",
     use_scm_version={"write_to": "Lib/fontbakery/_version.py"},
     url='https://github.com/googlefonts/fontbakery/',
     description='Well designed Font QA tool, written in Python 3',
-    long_description=('Font Bakery is a set of command-line tools'
-                      ' for ensuring the quality of font projects.'),
+    long_description=readme,
+    long_description_content_type='text/markdown',
     author=('Font Bakery authors and contributors:'
             ' Dave Crossland,'
             ' Felipe Sanches,'
@@ -63,8 +67,19 @@ setup(
         'font-v',
         'defcon',
         'ufolint',
-        'ttfautohint-py'
+        'ttfautohint-py',
+        'opentype-sanitizer',
+        # The following 2 modules are actually needed by fontTools:
+        'fs',
+        'unicodedata2'
     ],
+    extras_require={
+        'docs': [
+            'sphinx >= 1.4',
+            'sphinx_rtd_theme',
+            'recommonmark',
+        ]
+    },
     entry_points={
         'console_scripts': ['fontbakery=fontbakery.cli:main'],
     }

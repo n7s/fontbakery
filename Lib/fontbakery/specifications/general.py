@@ -1,7 +1,7 @@
 import os
 from fontbakery.callable import check, condition, disable
 from fontbakery.checkrunner import ERROR, FAIL, INFO, PASS, SKIP, WARN
-from fontbakery.constants import CRITICAL
+from fontbakery.constants import PriorityLevel
 from fontbakery.message import Message
 # used to inform get_module_specification whether and how to create a specification
 from fontbakery.fonts_spec import spec_factory # NOQA pylint: disable=unused-import
@@ -13,9 +13,10 @@ spec_imports = [
 
 @condition
 def fontforge_check_results(font):
-  if "adobeblank" in font:
-    return SKIP, ("Skipping AdobeBlank since"
-                  " this font is a very peculiar hack.")
+  # Would be AdobeBlank.ttf usually
+  if "adobeblank" in font.lower():
+    return {"skip": "Skipping AdobeBlank since "
+                    "this font is a very peculiar hack."}
 
   import subprocess
   cmd = (
@@ -41,7 +42,7 @@ def fontforge_check_results(font):
 @check(
   id = 'com.google.fonts/check/002',
   misc_metadata = {
-    'priority': CRITICAL
+    'priority': PriorityLevel.CRITICAL
   }
 )
 def com_google_fonts_check_002(fonts):
@@ -71,8 +72,42 @@ def com_google_fonts_check_002(fonts):
                  " {}".format(directories))
 
 
+@condition
+def ftxvalidator_is_available():
+  """ Test if `ftxvalidator` is a command; i.e. an executable with a path."""
+  import shutil
+  return shutil.which('ftxvalidator') is not None
+
+
 @check(
-  id = 'com.google.fonts/check/035'
+  id = 'com.google.fonts/check/ftxvalidator_is_available',
+  rationale = """
+    There's no reasonable (and legal) way to run the command `ftxvalidator`
+    of the Apple Font Tool Suite on a non-macOS machine. I.e. on GNU+Linux
+    or Windows etc.
+
+    If Font Bakery is not running on an OSX machine, the machine running
+    Font Bakery could access `ftxvalidator` on OSX, e.g. via ssh or a
+    remote procedure call (rpc).
+
+    There's an ssh example implementation at:
+    https://github.com/googlefonts/fontbakery/blob/master/prebuilt/workarounds/ftxvalidator/ssh-implementation/ftxvalidator
+
+    This check was suggested and requested at:
+    https://github.com/googlefonts/fontbakery/issues/2184
+  """
+)
+def com_google_fonts_check_ftxvalidator_is_available(ftxvalidator_is_available):
+  """Is the command `ftxvalidator` (Apple Font Tool Suite) available?"""
+  if ftxvalidator_is_available:
+    return PASS, "ftxvalidator is available."
+  else:
+    return WARN, "ftxvalidator is not available."
+
+
+@check(
+  id = 'com.google.fonts/check/035',
+  conditions = ['ftxvalidator_is_available']
 )
 def com_google_fonts_check_035(font):
   """Checking with ftxvalidator."""
@@ -105,8 +140,8 @@ def com_google_fonts_check_035(font):
       yield FAIL, f"ftxvalidator output follows:\n\n{ftx_output}\n"
 
   except subprocess.CalledProcessError as e:
-    yield WARN, ("ftxvalidator returned an error code. Output follows :"
-                 "\n\n{}\n").format(e.output)
+    yield ERROR, ("ftxvalidator returned an error code. Output follows:"
+                 "\n\n{}\n").format(e.output.decode('utf-8'))
   except OSError:
     yield ERROR, "ftxvalidator is not available!"
 
@@ -116,109 +151,80 @@ def com_google_fonts_check_035(font):
 )
 def com_google_fonts_check_036(font):
   """Checking with ots-sanitize."""
+  import ots
+
   try:
-    import subprocess
-    ots_output = subprocess.check_output(
-        ["ots-sanitize", font], stderr=subprocess.STDOUT).decode()
-    if ots_output != "" and "File sanitized successfully" not in ots_output:
-      yield FAIL, f"ots-sanitize output follows:\n\n{ots_output}"
+    process = ots.sanitize(font, check=True, capture_output=True)
+  except ots.CalledProcessError as e:
+    yield FAIL, (
+      "ots-sanitize returned an error code ({}). Output follows:\n\n{}{}"
+    ).format(e.returncode, e.stderr.decode(), e.stdout.decode())
+  else:
+    if process.stderr:
+      yield WARN, (
+        "ots-sanitize passed this file, however warnings were printed:\n\n{}"
+      ).format(process.stderr.decode())
     else:
       yield PASS, "ots-sanitize passed this file"
-  except subprocess.CalledProcessError as e:
-    yield FAIL, ("ots-sanitize returned an error code. Output follows :"
-                 "\n\n{}").format(e.output)
-  except OSError as e:
-    yield ERROR, ("ots-sanitize is not available!"
-                  " You really MUST check the fonts with this tool."
-                  " To install it, see"
-                  " https://github.com/googlefonts"
-                  "/gf-docs/blob/master/ProjectChecklist.md#ots"
-                  " Actual error message was: "
-                  "'{}'").format(e)
+
+
+def is_up_to_date(installed, latest):
+  # ignoring the development version suffix is ok
+  # and is necessary for the string comparison
+  # below to always yield valid results
+  has_githash = ".dev" in installed
+  installed = installed.split(".dev")[0]
+
+  # Maybe the installed version is even newer than the 
+  # released one (such as during development on git).
+  # That's what we're trying to detect here:
+  installed = installed.split('.')
+  latest = latest.split('.')
+  for i in range(len(installed)):
+    if installed[i] > latest[i]:
+      return True
+    if installed[i] < latest[i]:
+      return False
+
+  # Otherwise it should be identical
+  # to the latest released version.
+  return not has_githash
 
 
 @check(
-  id = 'com.google.fonts/check/037'
+  id = 'com.google.fonts/check/fontbakery_version'
 )
-def com_google_fonts_check_037(font):
-  """Checking with Microsoft Font Validator."""
-
-  # In some cases we want to override the severity level of
-  # certain checks in FontValidator:
-  downgrade_to_warn = [
-    "The xAvgCharWidth field does not equal the calculated value",
-    "There are undefined bits set in fsSelection field",
-    "Misoriented contour"
-  ]
-
-  # Some other checks we want to completely disable:
-  disabled_fval_checks = [
-    "Validating glyph with index",
-    "Table Test:"
-  ]
+def com_google_fonts_check_fontbakery_version():
+  """Do we have the latest version of FontBakery installed?"""
 
   try:
     import subprocess
-    fval_cmd = [
-        "FontValidator.exe", "-file", font, "-all-tables",
-        "-report-in-font-dir", "+raster-tests"
-    ]
-    subprocess.check_output(fval_cmd, stderr=subprocess.STDOUT)
+    installed_str = None
+    latest_str = None
+    is_latest = False
+    failed = False
+    pip_cmd = ["pip", "search", "fontbakery"]
+    pip_output = subprocess.check_output(pip_cmd, stderr=subprocess.STDOUT)
+    for line in pip_output.decode().split('\n'):
+      if 'INSTALLED' in line:
+        installed_str = line.split('INSTALLED')[1].strip()
+      if 'LATEST' in line:
+        latest_str = line.split('LATEST')[1].strip()
+      if '(latest)' in line:
+        is_latest = True
+
+    if not (is_latest or is_up_to_date(installed_str, latest_str)):
+      failed = True
+      yield FAIL, (f"Current Font Bakery version is {installed_str},"
+                   f" while a newer {latest_str} is already available."
+                    " Please upgrade it with 'pip install -U fontbakery'")
+    yield INFO, pip_output.decode()
   except subprocess.CalledProcessError as e:
-    filtered_msgs = ""
-    for line in e.output.decode().split("\n"):
-      for substring in disabled_fval_checks:
-        if substring in line:
-          continue
-      filtered_msgs += line + "\n"
-    yield INFO, ("Microsoft Font Validator returned an error code."
-                 " Output follows :\n\n{}\n").format(filtered_msgs)
-  except (OSError, IOError) as error:
-    yield ERROR, ("Mono runtime and/or "
-                  "Microsoft Font Validator are not available!")
-    raise error
+    yield ERROR, ("Running 'pip search fontbakery' returned an error code."
+                  " Output follows :\n\n{}\n").format(e.output.decode())
 
-  def report_message(msg, details):
-    if details:
-      return f"MS-FonVal: {msg} DETAILS: {details}"
-    else:
-      return f"MS-FonVal: {msg}"
-
-  xml_report_file = f"{font}.report.xml"
-  html_report_file = f"{font}.report.html"
-  fval_file = os.path.join(os.path.dirname(font), 'fval.xsl')
-
-  with open(xml_report_file, "rb") as xml_report:
-    import defusedxml.lxml
-    doc = defusedxml.lxml.parse(xml_report)
-    already_reported = []
-    for report in doc.iter('Report'):
-      msg = report.get("Message")
-      details = report.get("Details")
-      if [msg, details] not in already_reported:
-        # avoid cluttering the output with tons of identical reports
-        already_reported.append([msg, details])
-
-        if report.get("ErrorType") == "P":
-          yield PASS, report_message(msg, details)
-        elif report.get("ErrorType") == "E":
-          status = FAIL
-          for substring in downgrade_to_warn:
-            if substring in msg:
-              status = WARN
-          yield status, report_message(msg, details)
-        elif report.get("ErrorType") == "W":
-          yield WARN, report_message(msg, details)
-        else:
-          yield INFO, report_message(msg, details)
-
-  os.remove(xml_report_file)
-  # FontVal internal detail: HTML report generated only on non-Windows due to
-  # Mono or the used HTML renderer not being able to render XML with a
-  # stylesheet directly. https://github.com/googlefonts/fontbakery/issues/1747
-  if os.path.exists(html_report_file):
-    os.remove(html_report_file)
-  os.remove(fval_file)
+  if not failed:
+    yield PASS, "Font Bakery is up-to-date"
 
 
 @check(
@@ -227,6 +233,9 @@ def com_google_fonts_check_037(font):
 )
 def com_google_fonts_check_038(font, fontforge_check_results):
   """FontForge validation outputs error messages?"""
+  if "skip" in fontforge_check_results:
+    yield SKIP, fontforge_check_results["skip"]
+    return
 
   filtered_err_msgs = ""
   for line in fontforge_check_results["ff_err_messages"].split('\n'):
@@ -267,6 +276,9 @@ def fontforge_skip_checks():
 )
 def com_google_fonts_check_039(fontforge_check_results, fontforge_skip_checks):
   """FontForge checks."""
+  if "skip" in fontforge_check_results:
+    yield SKIP, fontforge_check_results["skip"]
+    return
 
   validation_state = fontforge_check_results["validation_state"]
   fontforge_checks = (
@@ -396,7 +408,8 @@ def com_google_fonts_check_039(fontforge_check_results, fontforge_skip_checks):
 
 
 @check(
-  id = 'com.google.fonts/check/046'
+  id = 'com.google.fonts/check/046',
+  conditions = ['not is_cff2']
 )
 def com_google_fonts_check_046(ttFont):
   """Font contains .notdef as first glyph?
@@ -490,7 +503,7 @@ def com_google_fonts_check_048(ttFont):
 
 @check(
   id = 'com.google.fonts/check/049',
-  conditions = ['is_ttf']
+  conditions = ['not is_cff2']
 )
 def com_google_fonts_check_049(ttFont):
   """Whitespace glyphs have ink?"""
@@ -516,8 +529,18 @@ def com_google_fonts_check_049(ttFont):
 
 
 @check(
-    id='com.google.fonts/check/052',
-    conditions=['is_ttf']
+  id='com.google.fonts/check/052',
+  conditions=['is_ttf'],
+  rationale="""Depending on the typeface and coverage of a font, certain
+  tables are recommended for optimum quality. For example, the performance
+  of a non-linear font is improved if the VDMX, LTSH, and hdmx tables are
+  present. Non-monospaced Latin fonts should have a kern table. A gasp table
+  is necessary if a designer wants to influence the sizes at which grayscaling
+  is used under Windows. A DSIG table containing a digital signature helps
+  ensure the integrity of the font file. Etc.
+  """
+  # TODO: The rationale description above comes from FontValidator, check W0022.
+  #       We may want to improve it and/or rephrase it.
 )
 def com_google_fonts_check_052(ttFont):
   """Font contains all required tables?"""
@@ -560,27 +583,50 @@ def com_google_fonts_check_052(ttFont):
 
 
 @check(
-  id = 'com.google.fonts/check/053'
+  id = 'com.google.fonts/check/053',
+  rationale = """Some font editors store source data in their own SFNT
+  tables, and these can sometimes sneak into final release files,
+  which should only have OpenType spec tables."""
 )
 def com_google_fonts_check_053(ttFont):
   """Are there unwanted tables?"""
   UNWANTED_TABLES = {
-      'FFTM', 'TTFA', 'prop', 'TSI0', 'TSI1', 'TSI2', 'TSI3', 'TSI5'}
+      'FFTM': '(from FontForge)',
+      'TTFA': '(from TTFAutohint)',
+      'TSI0': '(from VTT)',
+      'TSI1': '(from VTT)',
+      'TSI2': '(from VTT)',
+      'TSI3': '(from VTT)',
+      'TSI5': '(from VTT)',
+      'prop': '' # FIXME: why is this one unwanted?
+  }
   unwanted_tables_found = []
   for table in ttFont.keys():
-    if table in UNWANTED_TABLES:
-      unwanted_tables_found.append(table)
+    if table in UNWANTED_TABLES.keys():
+      info = UNWANTED_TABLES[table]
+      unwanted_tables_found.append(f"{table} {info}")
 
   if len(unwanted_tables_found) > 0:
     yield FAIL, ("Unwanted tables were found"
-                 " in the font and should be removed:"
+                 " in the font and should be removed, either by"
+                 " fonttools/ttx or by editing them using the tool"
+                 " they are from:"
                  " {}").format(", ".join(unwanted_tables_found))
   else:
     yield PASS, "There are no unwanted tables."
 
 
 @check(
-  id = 'com.google.fonts/check/058'
+  id = 'com.google.fonts/check/058',
+  rationale = """Microsoft's recommendations for OpenType Fonts states the
+  following, 'NOTE: The PostScript glyph name must be no longer than 31
+  characters, include only uppercase or lowercase English letters, European
+  digits, the period or the underscore, i.e. from the set [A-Za-z0-9_.] and
+  should start with a letter, except the special glyph name ".notdef" which
+  starts with a period.'
+
+  https://docs.microsoft.com/en-us/typography/opentype/spec/recom#post-table
+  """
 )
 def com_google_fonts_check_058(ttFont):
   """Glyph names are all valid?"""
@@ -677,7 +723,8 @@ def com_google_fonts_check_078(ttFont):
 
 
 @check(
-  id = 'com.google.fonts/check/ttx-roundtrip'
+  id = 'com.google.fonts/check/ttx-roundtrip',
+  conditions = ["not vtt_talk_sources"]
 )
 def com_google_fonts_check_ttx_roundtrip(font):
   """Checking with fontTools.ttx"""
@@ -686,7 +733,7 @@ def com_google_fonts_check_ttx_roundtrip(font):
   ttFont = ttx.TTFont(font)
   failed = False
 
-  class TTXLogger(object):
+  class TTXLogger:
     msgs = []
 
     def __init__(self):
@@ -703,28 +750,49 @@ def com_google_fonts_check_ttx_roundtrip(font):
       sys.stderr = self.original_stderr
       sys.stdout = self.original_stdout
 
-  logger = TTXLogger()
-  ttFont.saveXML(font + ".xml")
-  export_error_msgs = logger.msgs
+  from xml.parsers.expat import ExpatError
+  try:
+    logger = TTXLogger()
+    xml_file = font + ".xml"
+    ttFont.saveXML(xml_file)
+    export_error_msgs = logger.msgs
 
-  if len(export_error_msgs):
+    if len(export_error_msgs):
+      failed = True
+      yield INFO, ("While converting TTF into an XML file,"
+                   " ttx emited the messages listed below.")
+      for msg in export_error_msgs:
+        yield FAIL, msg.strip()
+
+    f = ttx.TTFont()
+    f.importXML(font + ".xml")
+    import_error_msgs = [msg for msg in logger.msgs if msg not in export_error_msgs]
+
+    if len(import_error_msgs):
+      failed = True
+      yield INFO, ("While importing an XML file and converting"
+                   " it back to TTF, ttx emited the messages"
+                   " listed below.")
+      for msg in import_error_msgs:
+        yield FAIL, msg.strip()
+    logger.restore()
+  except ExpatError as e:
     failed = True
-    yield INFO, ("While converting TTF into an XML file,"
-                 " ttx emited the messages listed below.")
-    for msg in export_error_msgs:
-      yield FAIL, msg.strip()
-
-  f = ttx.TTFont()
-  f.importXML(font + ".xml")
-  import_error_msgs = [msg for msg in logger.msgs if msg not in export_error_msgs]
-
-  if len(import_error_msgs):
-    failed = True
-    yield INFO, ("While importing an XML file and converting it back to TTF,"
-                 " ttx emited the messages listed below.")
-    for msg in import_error_msgs:
-      yield FAIL, msg.strip()
-  logger.restore()
+    yield FAIL, ("TTX had some problem parsing the generated XML file."
+                 " This most likely mean there's some problem in the font."
+		 " Please inspect the output of ttx in order to find more"
+		 " on what went wrong. A common problem is the presence of"
+                 " control characteres outside the accepted character range"
+                 " as defined in the XML spec. FontTools has got a bug which"
+                 " causes TTX to generate corrupt XML files in those cases."
+                 " So, check the entries of the name table and remove any"
+                 " control chars that you find there."
+		 " The full ttx error message was:\n"
+		 "======\n{}\n======".format(e))
 
   if not failed:
     yield PASS, "Hey! It all looks good!"
+
+  # and then we need to cleanup our mess...
+  if os.path.exists(xml_file):
+    os.remove(xml_file)
