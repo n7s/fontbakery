@@ -5,7 +5,7 @@ __author__ = 'Nicolas Spalinger'
 
 
 from fontbakery.checkrunner import (
-            INFO
+              INFO
             , WARN
             , ERROR
             , SKIP
@@ -35,6 +35,8 @@ from fontbakery.fonts_spec import spec_factory
 #        # This condition is a dependency of the check above:
 #        'familyname',
 # )
+
+specification = spec_factory(default_section=Section("SIL Fonts"))
 
 # -------------------------------------------------------------------
 # checks are defined (or added/skipped) below
