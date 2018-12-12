@@ -5,14 +5,14 @@ __author__ = 'Nicolas Spalinger'
 
 
 from fontbakery.checkrunner import (
-              INFO
+            INFO
             , WARN
             , ERROR
             , SKIP
             , PASS
             , FAIL
             , Section
-            )
+)
 import os
 from .shared_conditions import is_variable_font
 from fontbakery.callable import condition, check, disable
@@ -35,8 +35,6 @@ from fontbakery.fonts_spec import spec_factory
 #        # This condition is a dependency of the check above:
 #        'familyname',
 # )
-
-specification = spec_factory(default_section=Section("SIL Fonts"))
 
 # -------------------------------------------------------------------
 # checks are defined (or added/skipped) below
@@ -122,7 +120,7 @@ def os2_weight_warn():
 
 
 @check(
-    id='org.sil.scripts/check/has-R',
+    id='org.sil.software/check/has-R',
     rationale=''' rationale ''',
     conditions=[],
     misc_metadata={
@@ -148,7 +146,7 @@ def has_cap_r_in_name(font):
 
 
 @check(
-    id='org.sil.scripts/check/directories',
+    id='org.sil.software/check/directories',
     rationale=''' check that the project directories are in good shape  ''',
     misc_metadata={
         'priority': PriorityLevel.CRITICAL
@@ -181,14 +179,14 @@ def com_google_fonts_check_directories(fonts):
 
 
 @check(
-    id='org.sil.scripts/check/naming',
+    id='org.sil.software/check/naming',
     rationale=''' foo ''',
     conditions=[],
     misc_metadata={
         'priority': PriorityLevel.CRITICAL
     }
 )
-def org_sil_scripts_check_naming(font):
+def org_sil_software_check_naming(font):
     """Checking file is named canonically.
 
     A font's filename must be composed in the following manner:
@@ -220,14 +218,14 @@ def family_directory(fonts):
 
 
 @check(
-    id='org.sil.scripts/check/project_structure',
+    id='org.sil.software/check/project_structure',
     rationale=''' foo ''',
     conditions=[],
     misc_metadata={
         'priority': PriorityLevel.CRITICAL
     }
 )
-def org_sil_scripts_check_project_structure(font):
+def org_sil_software_check_project_structure(font):
   """Checking the wscript is present. IOW is this font project CI-enabled? """
   if family_directory:
     descfilepath = os.path.join(family_directory, "wscript")
@@ -266,14 +264,14 @@ def license(license_path):
 
 
 @check(
-    id='org.sil.scripts/check/font_license',
+    id='org.sil.software/check/font_license',
     rationale=''' foo ''',
     conditions=['license'],
     misc_metadata={
         'priority': PriorityLevel.CRITICAL
     }
 )
-def org_sil_scripts_check_font_license(licenses):
+def org_sil_software_check_font_license(licenses):
     """Check font has a license."""
     if len(licenses) > 1:
       yield FAIL, Message("multiple",
@@ -292,14 +290,14 @@ def org_sil_scripts_check_font_license(licenses):
 
 
 @check(
-    id='org.sil.scripts/check/matching-metadata',
+    id='org.sil.software/check/matching-metadata',
     rationale=''' foo ''',
     conditions=['license'],
     misc_metadata={
          'priority': PriorityLevel.CRITICAL
     }
 )
-def org_sil_scripts_check_matching_metadata(ttFont, license):
+def org_sil_software_check_matching_metadata(ttFont, license):
     """Check copyright namerecords match license file."""
     from fontbakery.constants import (NAMEID_LICENSE_DESCRIPTION,
                                       NAMEID_LICENSE_INFO_URL,
@@ -360,14 +358,14 @@ def typographic_familynames(ttFont):
 
 
 @check(
-    id='org.sil.scripts/check/license_URLs',
+    id='org.sil.software/check/license_URLs',
     rationale=''' foo ''',
     conditions=['familyname'],
     misc_metadata={
         'priority': PriorityLevel.CRITICAL
     }
 )
-def org_sil_scripts_check_license_URLs(ttFont, familyname):
+def org_sil_software_check_license_URLs(ttFont, familyname):
     """"License URL matches License text on name table?"""
     from fontbakery.constants import (NAMEID_LICENSE_DESCRIPTION,
                                       NAMEID_LICENSE_INFO_URL,
@@ -430,14 +428,14 @@ def org_sil_scripts_check_license_URLs(ttFont, familyname):
 
 
 @check(
-    id='org.sil.scripts/check/versions',
+    id='org.sil.software/check/versions',
     rationale=''' foo ''',
     conditions=[],
     misc_metadata={
         'priority': PriorityLevel.CRITICAL
     }
 )
-def org_sil_scripts_check_versions(ttFonts):
+def org_sil_software_check_versions(ttFonts):
     """Make sure all font files have the same version value."""
     all_detected_versions = []
     fontfile_versions = {}
@@ -461,7 +459,7 @@ def org_sil_scripts_check_versions(ttFonts):
 
 
 check(
-    id='org.sil.scripts/check/os2',
+    id='org.sil.software/check/os2',
     rationale=''' foo ''',
     conditions=['style'],
     misc_metadata={
@@ -470,7 +468,7 @@ check(
 )
 
 
-def org_sil_scripts_check_check_os2(ttFont, style):
+def org_sil_software_check_check_os2(ttFont, style):
     """Checking OS/2 fsSelection value."""
     from fontbakery.utils import check_bit_entry
     from fontbakery.constants import (STYLE_NAMES,
@@ -505,7 +503,7 @@ def org_sil_scripts_check_check_os2(ttFont, style):
 
 
 @check(
-    id='org.sil.scripts/check/name_table',
+    id='org.sil.software/check/name_table',
     rationale=''' foo ''',
     conditions=['style'],
     misc_metadata={
@@ -513,8 +511,8 @@ def org_sil_scripts_check_check_os2(ttFont, style):
 
     }
 )
-def org_sil_scripts_check_name_table(ttFont, style):
-    """Font has all mandatory 'name' table entries ?"""
+def org_sil_software_check_name_table(ttFont, style):
+    """Font has all mandatory 'name' table entries?"""
     from fontbakery.utils import get_name_entry_strings
     from fontbakery.constants import (RIBBI_STYLE_NAMES,
                                       NAMEID_STR,

@@ -76,9 +76,6 @@ register_check = specification.register_check
 register_condition = specification.register_condition
 # ----------------------------------------------------------------------------
 
-specification = spec_factory(default_section=Section("Checks for UFO sources - SIL fonts"))
-basic_checks = Section("Basic checks - UFO SIL Fonts")
-
 
 @register_condition
 @condition
