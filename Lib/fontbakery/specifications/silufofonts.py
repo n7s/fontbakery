@@ -6,10 +6,11 @@ __author__ = 'Nicolas Spalinger'
 
 import os
 
-from fontbakery.callable import check, condition
+from fontbakery.callable import check, condition, disable
 from fontbakery.callable import FontBakeryExpectedValue as ExpectedValue
 from fontbakery.checkrunner import ERROR, FAIL, PASS, WARN, Section, Spec
-from fontbakery.constants import CRITICAL
+from fontbakery.constants import PriorityLevel
+
 
 class UFOSpec(Spec):
 
@@ -66,7 +67,7 @@ fonts_expected_value = ExpectedValue(
 # ----------------------------------------------------------------------------
 # This variable serves as an exportable anchor point.
 specification = UFOSpec(
-    default_section=Section('SIL UFO font sources'),
+    default_section=Section('SIL UFO fonts'),
     iterargs={'font': 'fonts'},
     derived_iterables={'ufo_fonts': ('ufo_font', True)},
     expected_values={fonts_expected_value.name: fonts_expected_value})
@@ -74,6 +75,9 @@ specification = UFOSpec(
 register_check = specification.register_check
 register_condition = specification.register_condition
 # ----------------------------------------------------------------------------
+
+specification = spec_factory(default_section=Section("Checks for UFO sources - SIL fonts"))
+basic_checks = Section("Basic checks - UFO SIL Fonts")
 
 
 @register_condition
@@ -83,11 +87,11 @@ def ufo_font(font):
   return defcon.Font(font)
 
 
-@register_check
+@register_check(section=basic_checks)
 @check(
   id = 'com.daltonmaag/check/ufolint',
   misc_metadata = {
-    'priority': CRITICAL
+    'priority': PriorityLevel.CRITICAL
   }
 )
 def com_daltonmaag_check_ufolint(font):
@@ -99,14 +103,14 @@ def com_daltonmaag_check_ufolint(font):
     subprocess.check_output(ufolint_cmd, stderr=subprocess.STDOUT)
   except subprocess.CalledProcessError as e:
     yield FAIL, ("ufolint failed the UFO source. Output follows :"
-                 "\n\n{}\n").format(e.output)
+                 "\n\n{}\n").format(e.output.decode())
   except OSError:
     yield ERROR, "ufolint is not available!"
   else:
     yield PASS, "ufolint passed the UFO source."
 
 
-@register_check
+@register_check(section=basic_checks)
 @check(
   id = 'com.daltonmaag/check/ufo-required-fields'
 )
@@ -131,7 +135,7 @@ def com_daltonmaag_check_required_fields(ufo_font):
     yield PASS, "Required fields present."
 
 
-@register_check
+@register_check(section=basic_checks)
 @check(
   id = 'com.daltonmaag/check/ufo-recommended-fields'
 )
@@ -156,7 +160,7 @@ def com_daltonmaag_check_recommended_fields(ufo_font):
     yield PASS, "Recommended fields present."
 
 
-@register_check
+@register_check(section=basic_checks)
 @check(
   id = 'com.daltonmaag/check/ufo-unnecessary-fields'
 )
