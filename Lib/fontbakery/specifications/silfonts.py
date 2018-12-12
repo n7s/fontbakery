@@ -12,23 +12,16 @@ from fontbakery.checkrunner import (
             , PASS
             , FAIL
             , Section
-)
+            )
 import os
 from .shared_conditions import is_variable_font
 from fontbakery.callable import condition, check, disable
 from fontbakery.message import Message
-from fontbakery.constants import(
-        # TODO: priority levels are not yet part of the new runner/reporters.
-        # How did we ever use this information?
-        # Check priority levels:
-        CRITICAL
-      , IMPORTANT
-     , NORMAL
-     , LOW
-     , TRIVIAL
-)
-
-from fontbakery.fonts_spec import spec_factory # NOQA pylint: disable=unused-import
+from fontbakery.constants import(PriorityLevel,
+                                 NameID,
+                                 PlatformID,
+                                 WindowsEncodingID)
+from fontbakery.fonts_spec import spec_factory
 
 # don't import other specs for now
 # spec_imports = (
@@ -133,7 +126,8 @@ def os2_weight_warn():
     rationale=''' rationale ''',
     conditions=[],
     misc_metadata={
-        'priority': IMPORTANT
+        'priority': PriorityLevel.IMPORTANT
+
     },
 )
 # This check will run once for each item in `fonts`.
@@ -157,7 +151,7 @@ def has_cap_r_in_name(font):
     id='org.sil.scripts/check/directories',
     rationale=''' check that the project directories are in good shape  ''',
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 def com_google_fonts_check_directories(fonts):
@@ -191,7 +185,7 @@ def com_google_fonts_check_directories(fonts):
     rationale=''' foo ''',
     conditions=[],
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 def org_sil_scripts_check_naming(font):
@@ -230,7 +224,7 @@ def family_directory(fonts):
     rationale=''' foo ''',
     conditions=[],
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 def org_sil_scripts_check_project_structure(font):
@@ -276,7 +270,7 @@ def license(license_path):
     rationale=''' foo ''',
     conditions=['license'],
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 def org_sil_scripts_check_font_license(licenses):
@@ -302,7 +296,7 @@ def org_sil_scripts_check_font_license(licenses):
     rationale=''' foo ''',
     conditions=['license'],
     misc_metadata={
-        'priority': CRITICAL
+         'priority': PriorityLevel.CRITICAL
     }
 )
 def org_sil_scripts_check_matching_metadata(ttFont, license):
@@ -370,7 +364,7 @@ def typographic_familynames(ttFont):
     rationale=''' foo ''',
     conditions=['familyname'],
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 def org_sil_scripts_check_license_URLs(ttFont, familyname):
@@ -440,7 +434,7 @@ def org_sil_scripts_check_license_URLs(ttFont, familyname):
     rationale=''' foo ''',
     conditions=[],
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 def org_sil_scripts_check_versions(ttFonts):
@@ -471,7 +465,7 @@ check(
     rationale=''' foo ''',
     conditions=['style'],
     misc_metadata={
-        'priority': CRITICAL
+        'priority': PriorityLevel.CRITICAL
     }
 )
 
@@ -515,7 +509,8 @@ def org_sil_scripts_check_check_os2(ttFont, style):
     rationale=''' foo ''',
     conditions=['style'],
     misc_metadata={
-        'priority': IMPORTANT
+        'priority': PriorityLevel.IMPORTANT
+
     }
 )
 def org_sil_scripts_check_name_table(ttFont, style):
