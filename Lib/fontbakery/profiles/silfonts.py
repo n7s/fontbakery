@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''sets of checks for SIL fonts (http://software.sil.org), still a WIP, heavily inspired from existing checks'''
 __author__ = 'Nicolas Spalinger'
-"""
+
 import unicodedata, os, sys
 
 from fontbakery.checkrunner import Section, INFO, WARN, ERROR, SKIP, PASS, FAIL
