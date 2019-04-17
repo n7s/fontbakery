@@ -30,12 +30,7 @@ class HTMLReporter(fontbakery.reporters.serialize.SerializeReporter):
         """Return complete report as a HTML string."""
         data = self.getdoc()
         num_checks = 0
-        body = "<h1>Fontbakery Technical Report</h1>"
-        body += (
-            "<div>If you think a check is flawed or have an idea for a check, please "
-            f" file an issue at <a href='{ISSUE_URL}'>{ISSUE_URL}</a> and remember "
-            "to include a pointer to the repo and branch you're checking.</div>"
-        )
+        body_elements = []
 
         # Order by section first...
         for section in data["sections"]:
@@ -44,10 +39,9 @@ class HTMLReporter(fontbakery.reporters.serialize.SerializeReporter):
                 e for e in section["result"].elements() if e != "PASS"
             )
             section_stati = "".join(
-                EMOTICON[s]
-                for s in sorted(section_stati_of_note, key=LOGLEVELS.index)
+                EMOTICON[s] for s in sorted(section_stati_of_note, key=LOGLEVELS.index)
             )
-            body += f"<h2>{section_name} {section_stati}</h2>"
+            body_elements.append(f"<h2>{section_name} {section_stati}</h2>")
 
             checks_by_id: Dict[str, List[Dict[str, str]]] = collections.defaultdict(
                 list
@@ -61,31 +55,45 @@ class HTMLReporter(fontbakery.reporters.serialize.SerializeReporter):
                     checks_by_id[check["key"][1]].append(check)
             for check, results in checks_by_id.items():
                 check_name = html.escape(check)
-                body += f"<h3>{results[0]['description']}</h3>"
-                body += f"<div>Check ID: {check_name}</div>"
+                body_elements.append(f"<h3>{results[0]['description']}</h3>")
+                body_elements.append(f"<div>Check ID: {check_name}</div>")
                 for result in results:
                     if "filename" in result:
-                        body += html5_collapsible(
-                            f"{EMOTICON[result['result']]} <strong>{result['filename']}</strong>",
-                            self.html_for_check(result),
+                        body_elements.append(
+                            html5_collapsible(
+                                f"{EMOTICON[result['result']]} <strong>{result['filename']}</strong>",
+                                self.html_for_check(result),
+                            )
                         )
                     else:
-                        body += html5_collapsible(
-                            f"{EMOTICON[result['result']]} <strong>Family check</strong>",
-                            self.html_for_check(result),
+                        body_elements.append(
+                            html5_collapsible(
+                                f"{EMOTICON[result['result']]} <strong>Family check</strong>",
+                                self.html_for_check(result),
+                            )
                         )
+
+        body_top = [
+            "<h1>Fontbakery Technical Report</h1>",
+            "<div>If you think a check is flawed or have an idea for a check, please "
+            f" file an issue at <a href='{ISSUE_URL}'>{ISSUE_URL}</a> and remember "
+            "to include a pointer to the repo and branch you're checking.</div>",
+        ]
 
         if num_checks:
             results_summary = [data["result"][k] for k in LOGLEVELS]
-            body += summary_table(*results_summary, num_checks)
+            body_top.append(summary_table(*results_summary, num_checks))
 
         omitted = [l for l in LOGLEVELS if self.omit_loglevel(l)]
         if omitted:
-            body += ("<p><strong>Note:</strong>"
-                     " The following loglevels were omitted in this report:"
-                    f" {', '.join(omitted)}</p>")
+            body_top.append(
+                "<p><strong>Note:</strong>"
+                " The following loglevels were omitted in this report:"
+                f" {', '.join(omitted)}</p>"
+            )
 
-        return html5_document(body)
+        body_elements[0:0] = body_top
+        return html5_document(body_elements)
 
     def omit_loglevel(self, msg) -> bool:
         """Determine if message is below log level."""
@@ -106,34 +114,71 @@ class HTMLReporter(fontbakery.reporters.serialize.SerializeReporter):
             emoticon = EMOTICON[log["status"]]
             status = log["status"]
             message = html.escape(log["message"]).replace("\n", "<br/>")
-            return f"<li>{emoticon} <strong>{status}</strong> {message}</li>"
+            return (
+                "<li class='details_item'>"
+                f"<span class='details_indicator'>{emoticon} {status}</span>"
+                f"<span class='details_text'>{message}</span>"
+                "</li>"
+            )
         return ""
 
 
-def html5_document(body) -> str:
+def html5_document(body_elements) -> str:
     """Return complete HTML5 document string."""
 
     style = """
-html {font-family: "Aktiv Grotesk", sans;}
-h2 { margin-top: 2em;}
-h3 { margin-bottom: 1px;}
-.details {text-indent: 1em;}
-ul {
-    margin-top: 0;
-    margin-left: 1em;
-}
-table {
-    border-collapse: collapse;
-}
-th, td {
-    border: 1px solid #ddd;
-    padding: 0.5em
-}
-tr:nth-child(even) {background-color: #f2f2f2;}
-tr {
-    text-align: left;
-}
+            html {
+                font-family: "Aktiv Grotesk", sans;
+            }
+
+            h2 {
+                margin-top: 2em;
+            }
+
+            h3 {
+                margin-bottom: 1px;
+            }
+
+            table {
+                border-collapse: collapse;
+            }
+
+            th,
+            td {
+                border: 1px solid #ddd;
+                padding: 0.5em
+            }
+
+            tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+
+            tr {
+                text-align: left;
+            }
+
+            ul {
+                margin-top: 0;
+            }
+
+            .details_item {
+                list-style: none;
+                display: flex;
+                align-items: baseline;
+            }
+
+            .details_indicator {
+                flex: 0 0 5em;
+                font-weight: bold;
+                padding-right: 0.5em;
+                text-align: right;
+            }
+
+            .details_text {
+                flex: 1 0;
+            }
             """
+    body = "\n".join(body_elements)
     return f"""<!DOCTYPE html>
                 <html lang="en">
                     <head>
@@ -153,12 +198,7 @@ def html5_collapsible(summary, details) -> str:
     """Return nestable, collapsible <detail> tag for check grouping and sub-
     results."""
 
-    return (
-        "<details>"
-        f"<summary>{summary}</summary>"
-        f"<div class='details'>{details}</div>"
-        "</details>"
-    )
+    return f"<details><summary>{summary}</summary><div>{details}</div></details>"
 
 
 def summary_table(

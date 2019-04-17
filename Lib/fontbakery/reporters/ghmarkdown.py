@@ -15,12 +15,12 @@ class GHMarkdownReporter(SerializeReporter):
 
   def emoticon(self, name):
     return {
-      'ERROR': ':broken_heart:',
-      'FAIL': ':fire:',
-      'WARN': ':warning:',
-      'INFO': ':information_source:',
-      'SKIP': ':zzz:',
-      'PASS': ':bread:',
+      'ERROR': "\U0001F494", # 💔  :broken_heart:
+      'FAIL':  "\U0001F525", # 🔥  :fire:
+      'WARN':  "\U000026A0", # ⚠️  :warning:
+      'INFO':  "\U00002139", # ℹ️  :information_source:
+      'SKIP':  "\U0001F4A4", # 💤  :zzz:
+      'PASS':  "\U0001F35E", # 🍞  :bread:
     }[name]
 
 
@@ -45,8 +45,8 @@ class GHMarkdownReporter(SerializeReporter):
 
     check["logs"].sort(key=lambda c: c["status"])
     logs = "".join(map(self.log_md, check["logs"]))
-    github_search_url = (f"[{checkid}](https://github.com/googlefonts/fontbakery/"
-                          "search?q={checkid})")
+    github_search_url = (f"[{checkid}]"
+                         f"(https://github.com/googlefonts/fontbakery/search?q={checkid})")
     return self.html5_collapsible("{} <b>{}:</b> {}".format(self.emoticon(check["result"]),
                                                             check["result"],
                                                             check["description"]),

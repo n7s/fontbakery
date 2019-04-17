@@ -9,11 +9,12 @@ This has several subcommands, described in the help function:
     
     Run fontbakery subcommands:
         build-contributors
+        check-adobefonts
         check-collection
         check-fontval
         check-googlefonts
-        check-noto-version
-        check-specification
+        check-profile
+        check-universal
         generate-glyphdata
     
     Subcommands have their own help messages. These are usually 
@@ -25,9 +26,23 @@ This has several subcommands, described in the help function:
     
     optional arguments:
       -h, --help          show this help message and exit
-      --list-subcommands  print the list of subcommnds to stdout, separated 
+      --list-subcommands  print the list of subcommands to stdout, separated 
                           by a space character. This is usually only used to 
                           generate the shell completion code.
+
+### fontbakery check-universal
+
+The "universal" profile contains checks for best practices agreed upon on the type design community.
+
+The initial set of checks was choses to be not only the full opentype profile but also those checks originally included in both `adobefonts` and `googlefonts` profiles.
+
+The goal is to keep the vendor-specific profiles with only the minimal set of checks that are really specific, while the shared ones are placed on the universal profile.
+
+We should always consider contributing new checks (or moving existing ones) to this universal profile, if appropriate.
+
+### fontbakery check-adobefonts
+
+Usage is analogous to the Google Fonts profile described below.
 
 ### fontbakery check-googlefonts
 
@@ -35,7 +50,7 @@ This is the command used by foundries checking their projects for Google Fonts
 
 
 
-It runs the checks that we use in the [`specifications/googlefonts.py` Python script](https://github.com/googlefonts/fontbakery/blob/master/Lib/fontbakery/specifications/googlefonts.py)
+It runs the checks that we use in the [`profiles/googlefonts.py` Python script](https://github.com/googlefonts/fontbakery/blob/master/Lib/fontbakery/profiles/googlefonts.py)
 
 To run the checks on some fonts:
 
@@ -54,8 +69,8 @@ Run hand picked checks for all fonts in the `google/fonts` repository:
 
 
     $ fontbakery check-googlefonts \
-        -c com.google.fonts/check/034 \
-        -c com.google.fonts/check/044 \
+        -c com.google.fonts/check/xavgcharwidth \
+        -c com.google.fonts/check/font_version \
         -n -o "*check" -g "*check" \
         path/to/fonts/{apache,ofl,ufl}/*/*.ttf
 
@@ -132,7 +147,7 @@ Usage is similar to the check-googlefonts command described above.
 
 #### Old Command Line Tools
 
-Since November 2017 (v0.3.3) Font Bakery is solely focused checking fonts.
+Since November 2017 (v0.3.3) Font Bakery is solely focused on checking fonts.
 Before that (up to v0.3.2) it also provided some auxiliary scripts for fixing fonts. 
 
 Those tools are now a separate project, Google Fonts Tools, maintained at <https://github.com/googlefonts/tools> and packaged at <https://pypi.python.org/pypi/gftools>

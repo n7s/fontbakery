@@ -41,7 +41,7 @@ setup(
     package_dir={'': 'Lib'},
     packages=['fontbakery',
               'fontbakery.reporters',
-              'fontbakery.specifications',
+              'fontbakery.profiles',
               'fontbakery.commands'
               ],
     package_data={'fontbakery': ['data/*.cache']},
@@ -57,21 +57,19 @@ setup(
     python_requires='>=3.6',
     setup_requires=['setuptools_scm'],
     install_requires=[
-        'lxml',
-        'defusedxml',
-        'requests',
-        'unidecode',
-        'protobuf',
-        'bs4',
-        'fontTools',
-        'font-v',
+        'beautifulsoup4',
         'defcon',
-        'ufolint',
+        'defusedxml',
+        'font-v',
+        'fontTools[ufo,lxml,unicode]>=3.34',  # 3.34 fixed some CFF2 issues, including calcBounds
+        'lxml',
+        'opentype-sanitizer>=7.1.9',  # 7.1.9 fixes caret value format = 3 bug
+                                      # (see https://github.com/khaledhosny/ots/pull/182)
+        'protobuf>=3.7.0',  # 3.7.0 fixed a bug on parsing some METADATA.pb files
+                            # (see https://github.com/googlefonts/fontbakery/issues/2200)
+        'requests',
         'ttfautohint-py',
-        'opentype-sanitizer',
-        # The following 2 modules are actually needed by fontTools:
-        'fs',
-        'unicodedata2'
+        'ufolint',
     ],
     extras_require={
         'docs': [
@@ -82,5 +80,8 @@ setup(
     },
     entry_points={
         'console_scripts': ['fontbakery=fontbakery.cli:main'],
-    }
+    },
+    data_files=[
+        ('/etc/bash_completion.d', ['snippets/fontbakery.bash-completion']),
+    ]
 )

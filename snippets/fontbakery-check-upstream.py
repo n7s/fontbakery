@@ -1,4 +1,4 @@
-"""Run Fontbakery on an upstream repo using the googlefonts specification.
+"""Run Fontbakery on an upstream repo using the googlefonts profile.
 
 In order to post an issue back to the upstream repo, you will need to add
 a github access token.
@@ -72,7 +72,7 @@ def main():
     # Ignore check 28 since this is an upstream repo
     cmd = ['fontbakery', 'check-googlefonts'] + fonts + \
           ['--ghmarkdown', gh_report] + \
-          ['-x', 'com.google.fonts/check/028'] + \
+          ['-x', 'com.google.fonts/check/has_license'] + \
           ['-l', 'FAIL']
     
     subprocess.call(cmd)

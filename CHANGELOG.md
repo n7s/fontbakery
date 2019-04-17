@@ -1,9 +1,311 @@
 Below are the most important changes from each release.
 A more detailed list of changes is available in the corresponding milestones for each release in the Github issue tracker (https://github.com/googlefonts/fontbakery/milestones?state=closed).
 
-## 0.6.6 (2018-Dec-17)
+
+## 0.7.3 (2019-Apr-15)
+### Note-worthy code changes
+  - Improved --list-checks output. Now uses colors for better legibility on the text terminal (issue #2457)
+  - We now autocomplete check IDs on the command line (issue #2457)
+
+### New checks
+  - **[com.adobe.fonts/check/find_empty_letters]:** "Letters in font have glyphs that are not empty?" (PR #2460)
+  - **[com.google.fonts/check/repo/dirname_matches_nameid_1]:** "Directory name in GFonts repo structure must match NameID 1." (issue #2302)
+
+### Bug fixes
+  - **[com.adobe.fonts/cff_call_depth]:** fixed handling of font dicts in a CFF (PR #2461)
+  - Declare fonttools' unicode extra-dependency on our rquirements.txt and setup.py so that unicodedata2 is properly installed. (issue #2462)
+  - Bash completion script is now installed by `pip install fontbakery` (issue #2457)
+
+
+## 0.7.2 (2019-Apr-09)
+### Note-worthy code changes
+  - **[com.google.fonts/check/name/family_and_style_max_length]:** increased max length to 27 chars. After discussing the problem in more detail at issue #2179 we decided that allowing up to 27 chars would still be on the safe side. Please also see issue #2447
+
+### Bug fixes
+  - **[com.google.fonts/check/family/equal_glyph_names]:** Fix ERROR. When dealing with variable fonts, we end up getting None from the style condition. So we display filenames in those cases. But we still display styles when dealing with statics fonts. (issue #2375)
+  - **[com.adobe.fonts/check/cff_call_depth]:** don't assume private subroutines in a CFF (PR #2437)
+  - **[com.adobe.fonts/cff2_call_depth]:** fixed handling of font dicts (and private subroutines) in a CFF2 (PR #2441)
+  - **[com.google.fonts/check/contour_count]:** Filter out the .ttfautohint glyph component from the contour count (issue #2443)
+
+### Dependencies
+  - Removed the unidecode dependency. It is better to read log messages with the actual unicode strings instead of transliterations of them.
+
+
+## 0.7.1 (2019-Apr-02)
+### Major code-changes
+  - The new "universal" profile contains checks for best practices agreed upon on the type design community. (issue #2426)
+  - The initial set of checks will be not only the full opentype profile but also those checks original included in both adobefonts and googlefonts profiles.
+  - The goal is to keep the vendor-specific profiles with only the minimal set of checks that are really specific, while the shared ones are placed on the universal profile.
+
+### New checks
+  - **[com.adobe.fonts/check/cff_call_depth]:** "Is the CFF subr/gsubr call depth > 10?" (PR #2425)
+  - **[com.adobe.fonts/check/cff2_call_depth]:** "Is the CFF2 subr/gsubr call depth > 10?" (PR #2425)
+  - **[com.google.fonts/check/family/control_chars]:** "Are there unacceptable control characters in the font?" (PR #2430)
+
+
+## 0.7.0 (2019-Mar-22)
+### Major code-changes
+  - The term "specification" (including directory paths, class names and method names such as Spec, FontsSpec, etc) was replaced by "profile" throughout the codebase. The reason for this renaming was to avoid confusing with other uses of the term such as is "OpenType Specification".
+  - All numerical check-IDs were renamed to keyword-based IDs. We may still change them as we see fit and we plan to freeze the check-id naming when Font Bakery 1.0.0 is released.
+
+### Bug fixes
+  - **[com.google.fonts/check/canonical_filename]:** Distinguish static from varfont when reporting correctness of fontfile names. There are special naming rules for variable fonts. (issue #2396)
+  - Fix bug in handling of `most_common_width` in `glyph_metrics_stats` which affected checking of monospaced metadata. (PR #2391)
+  - Fix handling of `post.isFixedPitch` (accept any nonzero value). (PR #2392)
+  - **[com.google.fonts/check/metadata/valid_copyright]:** Check was being skipped when run on upstream font repos which don't have a METADATA.pb file. This check will now only test METADATA.pb files. A new check has been added to check the copyright string in fonts.
+
+### Other relevant code-changes
+  - We temporarily disabled com.google.fonts/check/metadata/match_filename_postscript for variable fonts until we have a clear definition of the VF naming rules as discussed at https://github.com/google/fonts/issues/1817
+  - We are now using portable paths on the code-tests. (issue #2398)
+  - The Adobe Fonts profile now includes FontForge checks. (PR #2401)
+  - Improve emoji output of `--ghmarkdown` option, so that actual emoji appear in text editors, rather than the previous emoji names
+  - The HTML reporter will now display check results more table-like, which makes multi-line check results look better.
+
+### New checks
+  - **[com.google.fonts/check/font_copyright]: "Copyright notices match canonical pattern in fonts"**
+  - **[com.adobe.fonts/check/postscript_name_consistency]:** "Name table ID 6 (PostScript name) must be consistent across platforms." (PR #2394)
+
+## Some check id renaming for better naming consistency:
+  - **[com.google.fonts/check/tnum_horizontal_metrics]:** com.google.fonts/check/family/tnum_horizontal_metrics
+  - **[com.adobe.fonts/check/bold_italic_unique_for_nameid1]:** com.adobe.fonts/check/family/bold_italic_unique_for_nameid1
+  - **[com.adobe.fonts/check/max_4_fonts_per_family_name]:** com.adobe.fonts/check/family/max_4_fonts_per_family_name
+  - **[com.abobe.fonts/check/postscript_name_cff_vs_name]:** com.abobe.fonts/check/name/postscript_vs_cff
+  - **[com.adobe.fonts/check/postscript_name_consistency]:** com.adobe.fonts/check/name/postscript_name_consistency
+  - **[com.adobe.fonts/check/name_empty_records]:** com.adobe.fonts/check/name/empty_records
+
+### Renamed numerical check-IDs:
+  - **[com.google.fonts/check/001]:** com.google.fonts/check/canonical_filename
+  - **[com.google.fonts/check/002]:** com.google.fonts/check/family/single_directory
+  - **[com.google.fonts/check/003]:** com.google.fonts/check/description/broken_links
+  - **[com.google.fonts/check/004]:** com.google.fonts/check/description/valid_html
+  - **[com.google.fonts/check/005]:** com.google.fonts/check/description/min_length
+  - **[com.google.fonts/check/006]:** com.google.fonts/check/description/max_length
+  - **[com.google.fonts/check/007]:** com.google.fonts/check/metadata/unknown_designer
+  - **[com.google.fonts/check/008]:** com.google.fonts/check/family/underline_thickness
+  - **[com.google.fonts/check/009]:** com.google.fonts/check/family/panose_proportion
+  - **[com.google.fonts/check/010]:** com.google.fonts/check/family/panose_familytype
+  - **[com.google.fonts/check/011]:** com.google.fonts/check/family/equal_numbers_of_glyphs
+  - **[com.google.fonts/check/012]:** com.google.fonts/check/family/equal_glyph_names
+  - **[com.google.fonts/check/013]:** com.google.fonts/check/family/equal_unicode_encodings
+  - **[com.google.fonts/check/014]:** com.google.fonts/check/family/equal_font_versions
+  - **[com.google.fonts/check/015]:** com.google.fonts/check/post_table_version
+  - **[com.google.fonts/check/016]:** com.google.fonts/check/fstype
+  - **[com.google.fonts/check/018]:** com.google.fonts/check/vendor_id
+  - **[com.google.fonts/check/019]:** com.google.fonts/check/name/unwanted_chars
+  - **[com.google.fonts/check/020]:** com.google.fonts/check/usweightclass
+  - **[com.google.fonts/check/028]:** com.google.fonts/check/family/has_license
+  - **[com.google.fonts/check/029]:** com.google.fonts/check/name/license
+  - **[com.google.fonts/check/030]:** com.google.fonts/check/name/license_url
+  - **[com.google.fonts/check/031]:** com.google.fonts/check/name/no_copyright_on_description
+  - **[com.google.fonts/check/032]:** com.google.fonts/check/name/description_max_length
+  - **[com.google.fonts/check/033]:** com.google.fonts/check/monospace
+  - **[com.google.fonts/check/034]:** com.google.fonts/check/xavgcharwidth
+  - **[com.google.fonts/check/035]:** com.google.fonts/check/ftxvalidator
+  - **[com.google.fonts/check/036]:** com.google.fonts/check/ots
+  - **[com.google.fonts/check/037]:** com.google.fonts/check/fontvalidator
+  - **[com.google.fonts/check/038]:** com.google.fonts/check/fontforge_stderr
+  - **[com.google.fonts/check/039]:** com.google.fonts/check/fontforge
+  - **[com.google.fonts/check/040]:** com.google.fonts/check/family/win_ascent_and_descent
+  - **[com.google.fonts/check/041]:** com.google.fonts/check/linegaps
+  - **[com.google.fonts/check/042]:** com.google.fonts/check/os2_metrics_match_hhea
+  - **[com.google.fonts/check/043]:** com.google.fonts/check/unitsperem
+  - **[com.google.fonts/check/044]:** com.google.fonts/check/font_version
+  - **[com.google.fonts/check/045]:** com.google.fonts/check/dsig
+  - **[com.google.fonts/check/046]:** com.google.fonts/check/mandatory_glyphs
+  - **[com.google.fonts/check/047]:** com.google.fonts/check/whitespace_glyphs
+  - **[com.google.fonts/check/048]:** com.google.fonts/check/whitespace_glyphnames
+  - **[com.google.fonts/check/049]:** com.google.fonts/check/whitespace_ink
+  - **[com.google.fonts/check/050]:** com.google.fonts/check/whitespace_widths
+  - **[com.google.fonts/check/052]:** com.google.fonts/check/required_tables
+  - **[com.google.fonts/check/053]:** com.google.fonts/check/unwanted_tables
+  - **[com.google.fonts/check/054]:** com.google.fonts/check/hinting_impact
+  - **[com.google.fonts/check/055]:** com.google.fonts/check/name/version_format
+  - **[com.google.fonts/check/056]:** com.google.fonts/check/old_ttfautohint
+  - **[com.google.fonts/check/057]:** com.google.fonts/check/name/line_breaks
+  - **[com.google.fonts/check/058]:** com.google.fonts/check/valid_glyphnames
+  - **[com.google.fonts/check/059]:** com.google.fonts/check/unique_glyphnames
+  - **[com.google.fonts/check/061]:** com.google.fonts/check/epar
+  - **[com.google.fonts/check/062]:** com.google.fonts/check/gasp
+  - **[com.google.fonts/check/063]:** com.google.fonts/check/gpos_kerning_info
+  - **[com.google.fonts/check/064]:** com.google.fonts/check/ligature_carets
+  - **[com.google.fonts/check/065]:** com.google.fonts/check/kerning_for_non_ligated_sequences
+  - **[com.google.fonts/check/066]:** com.google.fonts/check/kern_table
+  - **[com.google.fonts/check/067]:** com.google.fonts/check/name/familyname_first_char
+  - **[com.google.fonts/check/068]:** com.google.fonts/check/name/match_familyname_fullfont
+  - **[com.google.fonts/check/069]:** com.google.fonts/check/glyf_unused_data
+  - **[com.google.fonts/check/070]:** com.google.fonts/check/currency_chars
+  - **[com.google.fonts/check/071]:** com.google.fonts/check/family_naming_recommendations
+  - **[com.google.fonts/check/072]:** com.google.fonts/check/smart_dropout
+  - **[com.google.fonts/check/073]:** com.google.fonts/check/maxadvancewidth
+  - **[com.google.fonts/check/074]:** com.google.fonts/check/name/ascii_only_entries
+  - **[com.google.fonts/check/075]:** com.google.fonts/check/points_out_of_bounds
+  - **[com.google.fonts/check/077]:** com.google.fonts/check/all_glyphs_have_codepoints
+  - **[com.google.fonts/check/078]:** com.google.fonts/check/glyphnames_max_length
+  - **[com.google.fonts/check/079]:** com.google.fonts/check/monospace_max_advancewidth
+  - **[com.google.fonts/check/082]:** com.google.fonts/check/metadata/profiles_csv
+  - **[com.google.fonts/check/083]:** com.google.fonts/check/metadata_unique_full_name_values
+  - **[com.google.fonts/check/084]:** com.google.fonts/check/metadata/unique_weight_style_pairs
+  - **[com.google.fonts/check/085]:** com.google.fonts/check/metadata/license
+  - **[com.google.fonts/check/086]:** com.google.fonts/check/metadata/menu_and_latin
+  - **[com.google.fonts/check/087]:** com.google.fonts/check/metadata/subsets_order
+  - **[com.google.fonts/check/088]:** com.google.fonts/check/metadata/copyright
+  - **[com.google.fonts/check/089]:** com.google.fonts/check/metadata/familyname
+  - **[com.google.fonts/check/090]:** com.google.fonts/check/metadata/has_regular
+  - **[com.google.fonts/check/091]:** com.google.fonts/check/metadata/regular_is_400
+  - **[com.google.fonts/check/092]:** com.google.fonts/check/metadata/nameid/family_name
+  - **[com.google.fonts/check/093]:** com.google.fonts/check/metadata/nameid/post_script_name
+  - **[com.google.fonts/check/094]:** com.google.fonts/check/metadata/nameid/full_name
+  - **[com.google.fonts/check/095]:** com.google.fonts/check/metadata/nameid/font_name
+  - **[com.google.fonts/check/096]:** com.google.fonts/check/metadata/match_fullname_postscript
+  - **[com.google.fonts/check/097]:** com.google.fonts/check/metadata/match_filename_postscript
+  - **[com.google.fonts/check/098]:** com.google.fonts/check/metadata/valid_name_values
+  - **[com.google.fonts/check/099]:** com.google.fonts/check/metadata/valid_full_name_values
+  - **[com.google.fonts/check/100]:** com.google.fonts/check/metadata/valid_filename_values
+  - **[com.google.fonts/check/101]:** com.google.fonts/check/metadata/valid_post_script_name_values
+  - **[com.google.fonts/check/102]:** com.google.fonts/check/metadata/valid_copyright
+  - **[com.google.fonts/check/103]:** com.google.fonts/check/metadata/reserved_font_name
+  - **[com.google.fonts/check/104]:** com.google.fonts/check/metadata/copyright_max_length
+  - **[com.google.fonts/check/105]:** com.google.fonts/check/metadata/canonical_filename
+  - **[com.google.fonts/check/106]:** com.google.fonts/check/metadata/italic_style
+  - **[com.google.fonts/check/107]:** com.google.fonts/check/metadata/normal_style
+  - **[com.google.fonts/check/108]:** com.google.fonts/check/metadata/nameid/family_and_full_names
+  - **[com.google.fonts/check/109]:** com.google.fonts/check/metadata/fontname_not_camel_cased
+  - **[com.google.fonts/check/110]:** com.google.fonts/check/metadata/match_name_familyname
+  - **[com.google.fonts/check/111]:** com.google.fonts/check/metadata/canonical_weight_value
+  - **[com.google.fonts/check/112]:** com.google.fonts/check/metadata/os2_weightclass
+  - **[com.google.fonts/check/113]:** com.google.fonts/check/metadata/match_weight_postscript
+  - **[com.google.fonts/check/115]:** com.google.fonts/check/metatada/canonical_style_names
+  - **[com.google.fonts/check/116]:** com.google.fonts/check/unitsperem_strict
+  - **[com.google.fonts/check/117]:** com.google.fonts/check/version_bump
+  - **[com.google.fonts/check/118]:** com.google.fonts/check/production_glyphs_similarity
+  - **[com.google.fonts/check/129]:** com.google.fonts/check/fsselection
+  - **[com.google.fonts/check/130]:** com.google.fonts/check/italic_angle
+  - **[com.google.fonts/check/131]:** com.google.fonts/check/mac_style
+  - **[com.google.fonts/check/152]:** com.google.fonts/check/reserved_font_name
+  - **[com.google.fonts/check/153]:** com.google.fonts/check/contour_count
+  - **[com.google.fonts/check/154]:** com.google.fonts/check/production_encoded_glyphs
+  - **[com.google.fonts/check/155]:** com.google.fonts/check/metadata_nameid_copyright
+  - **[com.google.fonts/check/156]:** com.google.fonts/check/name/mandatory_entries
+  - **[com.google.fonts/check/157]:** com.google.fonts/check/name/familyname
+  - **[com.google.fonts/check/158]:** com.google.fonts/check/name/subfamilyname
+  - **[com.google.fonts/check/159]:** com.google.fonts/check/name/fullfontname
+  - **[com.google.fonts/check/160]:** com.google.fonts/check/name/postscriptname
+  - **[com.google.fonts/check/161]:** com.google.fonts/check/name/typographicfamilyname
+  - **[com.google.fonts/check/162]:** com.google.fonts/check/name/typographicsubfamilyname
+  - **[com.google.fonts/check/163]:** com.google.fonts/check/name/family_and_style_max_length
+  - **[com.google.fonts/check/164]:** com.google.fonts/check/name/copyright_length
+  - **[com.google.fonts/check/165]:** com.google.fonts/check/fontdata_namecheck
+  - **[com.google.fonts/check/166]:** com.google.fonts/check/fontv
+  - **[com.google.fonts/check/167]:** com.google.fonts/check/varfont/regular_wght_coord
+  - **[com.google.fonts/check/168]:** com.google.fonts/check/varfont/regular_wdth_coord
+  - **[com.google.fonts/check/169]:** com.google.fonts/check/varfont/regular_slnt_coord
+  - **[com.google.fonts/check/170]:** com.google.fonts/check/varfont/regular_ital_coord
+  - **[com.google.fonts/check/171]:** com.google.fonts/check/varfont/regular_opsz_coord
+  - **[com.google.fonts/check/172]:** com.google.fonts/check/varfont/bold_wght_coord
+  - **[com.google.fonts/check/173]:** com.google.fonts/check/negative_advance_width
+  - **[com.google.fonts/check/174]:** com.google.fonts/check/varfont/generate_static
+  - **[com.google.fonts/check/180]:** com.google.fonts/check/loca/maxp_num_glyphs
+
+
+## 0.6.12 (2019-Mar-11)
+### Bug fixes
+  - Fix bug in which a singular ttFont condition causes a family-wide (ttFonts) check to be executed once per font. (issue #2370)
+  - **[com.google.fonts/check/079]:** Fixed bug in which this check was not confirming that font seemed monospaced before reporting different advance widths. (PR #2368, part of issue #2366)
+  - Protect condition ttfautohint_stats against non-ttf fonts (issue #2385)
+  - **[com.google/fonts/check/040]:** Cap accepted winDescent and winAscent values. Both should be less than double their respective bounding box values.
+
+### New features
+  - We now have an Adobe collection of checks (specification). It will include more checks in future releases. (PR #2369)
+  - The `FontSpec` class now has a `get_family_checks()` method that returns a list of family-level checks. (PR #2380)
+
+### New checks
+  - **[com.adobe.fonts/check/bold_italic_unique_for_nameid1]:** "OS/2.fsSelection bold & italic are unique for each NameID1" (PR #2388)
+  - **[com.adobe.fonts/check/fsselection_matches_macstyle]:**  "OS/2.fsSelection and head.macStyle bold and italic bits match." (PR #2382)
+  - **[com.adobe.fonts/check/max_4_fonts_per_family_name]:**  "Each group of fonts with same nameID 1 has maximum of 4 fonts." (PR #2372)
+  - **[com.adobe.fonts/check/consistent_upm]:**  "Fonts have consistent units per em." (PR #2372)
+  - **[com.adobe.fonts/check/name_empty_records]:** "Check 'name' table for empty records." (PR #2369)
+
+
+## 0.6.11 (2019-Feb-18)
+### Documentation
+  - Update maintainer notes so that we do not forget to update the cache of vendor ids list. (issue #2359)
+
+### New checks
+  - **[com.google.fonts/check/integer_ppem_if_hinted]:** "PPEM must be an integer on hinted fonts." (issue #2338)
+
+### New conditions
+  - **[is_hinted]:** allows restricting certain checks to only run on hinted fonts. Detection is based on the presence of an "fpgm" (Font Program) table.
+
+### Bugfixes
+  - **[fontbakery.utils.download_file]:** Fix error message when ssl certificates are not installed. (issue #2346)
+  - **[fontbakery.specifications.shared_conditions]:** Determine whether a font is monospaced by analysing the ascii character set only. (issue #2202)
+  - **[fontbakery.specifications.googlefonts.registered_vendor_ids]:** Update cache of vendor ID list from Microsoft's website. (issue #2359)
+
+### new Code-tests
+  - **[registered_vendor_ids condition]:** Make sure several corner cases are properly parsed. This includes ensuring that vendor IDs lacking a URL are properly handled. (issue #2359)
+
+
+## 0.6.10 (2019-Feb-11)
+### Documentation
+  - The documentation was updated incorporating an article that was originally presented at the 9ET conference in Portugal in the end of 2018. The article gives a detailed overview of the goals of the Font Bakery project.
+
+### Bugfixes
+  - **[fontbakery.utils.download_file]:** Printing a message with a hint of a possible fix to "SSL bad certificate" when trying to download files. (issue #2274)
+
+### Deprecated checks
+  - **[com.google.fonts/check/076]:** "unique unicode codepoints" - This check seemd impossible to FAIL! (issue #2324)
+
+### Dependencies (concrete deps on requirements.txt)
+  - **[fontTools]:** upgraded to 3.37.0
+
+### new Code-tests
+  - Code-coverage: 63% (same as on v0.6.9)
+  - **[com.google.fonts/check/has_ttfautohint_params]:** (issue #2312)
+  - **[com.google.fonts/check/077]:** "all glyphs have codepoints" - I am unaware of any font that actually FAILs this check, though... (issue #2325)
+
+
+## 0.6.9 (2019-Feb-04)
+### Bugfixes
+  - **[com.google.fonts/check/034]:** fix explanation of xAvgWidth on WARN/INFO messages. (issue #2285)
+
+### Other code changes
+  - Adopting python type hint notation.
+
+
+## 0.6.8 (2019-Jan-28)
+### Bugfixes ###
+  - **[FontBakeryCondition:licenses]:** Do not crash when font project is not in a git repo (issue #2296)
+
+
+## 0.6.7 (2019-Jan-21)
+### New checks
+  - **[com.google.fonts/check/tnum_horizontal_metrics]:** "All tabular figures must have the same width across the whole family." (issue #2278)
+
+### Changes to existing checks
+  - **[com.google.fonts/check/056]:** Require ttfautohint. Emit an ERROR when it is not properly installed in the system. (issue #1851)
+  - **[com.google.fonts/check/092 & 108]:** Use *Typographic Family Name* instead of *Font Family Name* if it exists in the font's name table.
+
+### Deprecated checks
+  - **[com.google.fonts/check/119]:** "TTFAutohint x-height increase value is same as in previous release on Google Fonts?". Marc Foley said: "Since we now have visual diffing, I would like to remove it. This test is also bunk because ttfautohint's results are not consistent when they update it." (issue #2280)
+
+### Other code changes
+  - Added more valid options of contour count values for Oslash and f_f_i glyphs (issue #1851)
+  - The HTML reporter now places the percentages summary before the check details.
+  - updated dependencies on setup.py and requirements.txt to make sure we ship exactly what we test during development (issue #2174)
+
+
+## 0.6.6 (2018-Dec-20)
+### New Checks
+  - **[com.google.fonts/check/wght_valid_range]:** Weight axis coordinate must be within spec range of 1 to 1000 on all instances. (issue #2264)
+
+### Bugfixes
+  - fixed the checkID variable in our ghmarkdown reporter (the f-string syntax was broken)
+
 ### Changes to existing checks
   - **[com.google.fonts/check/153]:** Disable "expected contour count" check for variable fonts. There's plenty of alternative ways of constructing glyphs with multiple outlines for each feature in a VarFont. The expected contour count data for this check is currently optimized for the typical construction of glyphs in static fonts. (issue #2262)
+  - **[com.google.fonts/check/046]:** Removed restriction on CFF2 fonts because the helper method `glyph_has_ink` now handles `CFF2`.
+  - **[com.google.fonts/check/049]:** Removed restriction on CFF2 fonts because the helper method `glyph_has_ink` now handles `CFF2`.
+
 
 ## 0.6.5 (2018-Dec-10)
 ### New Checks

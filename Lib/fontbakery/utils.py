@@ -13,6 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
+
+from fontTools.ttLib import TTFont
+from typing import Text, Optional
+
+def portable_path(p):
+  return os.path.join(*p.split('/'))
+
+def TEST_FILE(f):
+  return portable_path("data/test/" + f)
+
 
 def pretty_print_list(values):
   if len(values) == 1:
@@ -20,6 +31,21 @@ def pretty_print_list(values):
   else:
     return "{} or {}".format(", ".join(map(str, values[:-1])),
                              str(values[-1]))
+
+
+def get_regular(fonts):
+  # TODO: Maybe also support getting a regular instance from a variable font?
+  for font in fonts:
+    if "-Regular.ttf" in font:
+      return font
+
+
+def get_absolute_path(p):
+  if os.path.isabs(p):
+    abspath = p
+  else:
+    abspath = os.path.join(os.path.abspath('.'), p)
+  return abspath
 
 
 def get_bounding_box(font):
@@ -72,8 +98,7 @@ def name_entry_id(name):
                                   name.platformID)
 
 
-def get_glyph_name(font, codepoint):
-  # type: (fontTools.ttLib.TTFont, int) -> Optional[str]
+def get_glyph_name(font: TTFont, codepoint: int) -> Optional[str]:
   next_best_cmap = font.getBestCmap()
 
   if codepoint in next_best_cmap:
@@ -94,7 +119,8 @@ def glyph_contour_count(font, name):
         g = items.pop(0)
         if g.isComposite():
             for comp in g.components:
-                items.append(font['glyf'][comp.glyphName])
+                if comp.glyphName != ".ttfautohint":
+                    items.append(font['glyf'][comp.glyphName])
         if g.numberOfContours != -1:
             contour_count += g.numberOfContours
     return contour_count
@@ -157,14 +183,27 @@ def check_bit_entry(ttFont, table, attr, expected, bitmask, bitname):
                          f"{name_str} should be {expected_str}.")
 
 
+class BadCertificateSetupException(Exception):
+    pass
+
+
 def download_file(url):
   from urllib.request import urlopen
+  from urllib.error import URLError
   from io import BytesIO
-  return BytesIO(urlopen(url).read())
+  try:
+    return BytesIO(urlopen(url).read())
+  except URLError as e:
+    if "CERTIFICATE_VERIFY_FAILED" in str(e.reason):
+      raise BadCertificateSetupException("You probably installed official"
+            " Mac python from python.org but forgot to also install"
+            " the certificates. There is a note in the installer"
+            " Readme about that. Check the Python folder in the"
+            " Applications directory, you should find a shell script"
+            " to install the certificates.")
 
 
-def cff_glyph_has_ink(font, glyph_name):
-  # type: (TTFont, Text) -> bool
+def cff_glyph_has_ink(font: TTFont, glyph_name: Text) -> bool:
   if 'CFF2' in font:
     top_dict = font['CFF2'].cff.topDictIndex[0]
   else:
@@ -178,8 +217,7 @@ def cff_glyph_has_ink(font, glyph_name):
   return False
 
 
-def ttf_glyph_has_ink(font, name):
-  # type: (TTFont, Text) -> bool
+def ttf_glyph_has_ink(font: TTFont, name: Text) -> bool:
   glyph = font['glyf'].glyphs[name]
   glyph.expand(font['glyf'])
 
@@ -198,8 +236,7 @@ def ttf_glyph_has_ink(font, name):
   return False
 
 
-def glyph_has_ink(font, name):
-  # type: (TTFont, Text) -> bool
+def glyph_has_ink(font: TTFont, name: Text) -> bool:
   """Checks if specified glyph has any ink.
 
   That is, that it has at least one defined contour associated.
@@ -212,18 +249,10 @@ def glyph_has_ink(font, name):
   """
   if 'glyf' in font:
     return ttf_glyph_has_ink(font, name)
-  elif 'CFF ' in font:
+  elif ('CFF ' in font) or ('CFF2' in font):
     return cff_glyph_has_ink(font, name)
   else:
-    raise Exception("Could not find 'glyf' or 'CFF ' table.")
-
-  # TODO: replace lines above with lines below once the bug in
-  #       the fonttools CFF2 charstring calcBounds method is fixed
-
-  # elif ('CFF ' in font) or ('CFF2' in font):
-  #   return cff_glyph_has_ink(font, name)
-  # else:
-  #   raise Exception("Could not find 'glyf', 'CFF ', or 'CFF2' table.")
+    raise Exception("Could not find 'glyf', 'CFF ', or 'CFF2' table.")
 
 
 def assert_results_contain(check_results, expected_status, expected_msgcode=None):

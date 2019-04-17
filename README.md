@@ -11,10 +11,14 @@ Format specifications, distributor requirements, and custom checks.
 
 For a full introduction, [check out the Typecon 2018 presentation deck](https://docs.google.com/presentation/d/14dU3cUXelwvpVokhKYmJ6jT51AASDaOFyEUSdxb0RAg/).
 
-Font Bakery has an active community of contributors from foundries around the world, including Adobe Typekit, Dalton Maag, Type Network, and Google Fonts. Please join our developer chat channel at https://gitter.im/fontbakery/Lobby
+Font Bakery has an active community of contributors from foundries around the world, including Adobe Fonts, Dalton Maag, Type Network, and Google Fonts. Please join our developer chat channel at https://gitter.im/fontbakery/Lobby
 
 Font Bakery is not an official Google project, and Google provides no support for it.
 However, throughout 2018 the core project maintainers Felipe Corrêa da Silva Sanches <juca@members.fsf.org> and Lasse Fister <commander@graphicore.de> were funded by the Google Fonts team.
+
+## Docs
+
+Find the full docs at https://font-bakery.readthedocs.io
 
 ## License
 
@@ -32,9 +36,13 @@ See the Font Bakery Installation Guide for your platform:
 
 Font Bakery is primarily a Terminal app, learn more in the [Command Line Usage Guide](https://font-bakery.readthedocs.io/en/latest/user/USAGE.html).
 
-If you write little Python scripts in your workflow, you can easily [write custom checks](https://font-bakery.readthedocs.io/en/latest/developer/writing-specifications.html).
+If you write little Python scripts in your workflow, you can easily [write custom checks](https://font-bakery.readthedocs.io/en/latest/developer/writing-profiles.html).
 
 For full developer documentation, check out [font-bakery.readthedocs.io](https://font-bakery.readthedocs.io) (a hosted and compiled copy of contents in the `/docs` directory.)
+
+## Contributing
+
+See the guide to [Getting Started as a Contributor](https://font-bakery.readthedocs.io/en/latest/developer/contrib-getting-started.html).
 
 ## Web Dashboard
 
@@ -55,6 +63,6 @@ Most of the checks are for OpenType binary files, and project metadata files.
 
 If you are developing a font project publicly with Github (or a similar host) you can set up a Continuous Integration service (like [Travis](https://www.travis-ci.org)) to run Font Bakery on each commit, so that with each update all checks will be run on your files.
 
-## Contributing
+## Trivia
 
-See the guide to [Getting Started as a Contributor](https://font-bakery.readthedocs.io/en/latest/developer/contrib-getting-started.html).
+* [Advances in Continuous Integration Testing at Google](https://ai.google/research/pubs/pub46593) - 2018 presentation
