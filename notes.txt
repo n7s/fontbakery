@@ -1,5 +1,5 @@
 Now that fontbakery is stabilizing here are my notes. 
-Last update: December 2018.
+Last update: July 2019.
 
 installing the current release from Pypi inside a xenial smith VM
 ========================================================
@@ -33,7 +33,7 @@ pip install -e .
 
 apt install bash-completion 
 vim /etc/bash.bashrc (then uncomment the completion block before launching a new shell)
-cp snippets/bash_completion /etc/bash_completion.d/fontbakery
+cp snippets/fontbakery.bash_completion /etc/bash_completion.d/fontbakery
 apt install software-properties-common
 apt install python3-future
 
@@ -105,6 +105,6 @@ fontbakery check-silufofonts --verbose source/*.ufo --ghmarkdown fontbakery-ufo-
 
 The next step is discussing/deciding which tests we want to include or exclude and to start adding new ones based on the specs described in UFOchecks: https://github.com/silnrsi/ufochecks
 
-Smith integration is underway to make fontbakery another test target and for the resulting .md file to become available easily.  
+Smith integration is underway to make fontbakery another test target and for the resulting .md or .html file to become available easily.  
 
 
